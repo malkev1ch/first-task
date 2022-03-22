@@ -1,0 +1,12 @@
+db:
+  port: 5434
+  sslmode: disable
+  host:   localhost
+  username: postgres
+  dbname: postgres
+
+http:
+  port: 80
+  MaxHeaderMegabytes: 1
+  readTimeout: 10s
+  writeTimeout: 10s
