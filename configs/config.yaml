@@ -1,5 +1,5 @@
 db:
-  port: 5434
+  port: 5433
   sslmode: disable
   host:   localhost
   username: postgres
