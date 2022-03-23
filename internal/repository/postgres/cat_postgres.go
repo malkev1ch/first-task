@@ -10,8 +10,7 @@ import (
 )
 
 type CatPostgres struct {
-	db  *pgx.Conn
-	ctx context.Context
+	db *pgx.Conn
 }
 
 func NewCatPostgres(db *pgx.Conn) *CatPostgres {
@@ -19,25 +18,26 @@ func NewCatPostgres(db *pgx.Conn) *CatPostgres {
 }
 
 func (r *CatPostgres) CreateCat(input domain.CreateCat) (*int, error) {
-	insertCatQuery := fmt.Sprintf("INSERT INTO cats(name, date_birth, vaccinated) VALUES ($1, $2, $3) RETURNING id")
+	insertCatQuery := fmt.Sprintf("INSERT INTO cats(name, date_birth, vaccinated) VALUES ($1, $2, $3) RETURNING row_id")
 	var id int
-	if err := r.db.QueryRow(r.ctx, insertCatQuery, input.Name, input.DateBirth, input.Vaccinated).Scan(&id); err != nil {
+	err := r.db.QueryRow(context.Background(), insertCatQuery, input.Name, input.DateBirth, input.Vaccinated).Scan(&id)
+	if err != nil {
 		logrus.Error(err, "Error occurred while inserting new row in table cats")
 		return nil, err
 	}
-
 	return &id, nil
 }
 
 func (r *CatPostgres) GetCat(id int) (*domain.Cat, error) {
-	getCatQuery := fmt.Sprintf("SELECT id, name, date_birth, vaccinated FROM cats WHERE id = $1")
+	getCatQuery := fmt.Sprintf("SELECT name, date_birth, vaccinated, image_path FROM cats WHERE row_id = $1")
 	var cat domain.Cat
-	if err := r.db.QueryRow(r.ctx, getCatQuery, id).Scan(&cat.Name, &cat.DateBirth, &cat.Vaccinated); err != nil {
+	err := r.db.QueryRow(context.Background(), getCatQuery, id).Scan(&cat.Name, &cat.DateBirth, &cat.Vaccinated, &cat.ImagePath)
+	if err != nil {
 		logrus.Error(err, "Error occurred while selecting row from table cats")
 		return nil, err
 	}
 
-	return nil, nil
+	return &cat, nil
 }
 
 func (r *CatPostgres) UpdateCat(id int, input domain.UpdateCat) error {
@@ -64,10 +64,11 @@ func (r *CatPostgres) UpdateCat(id int, input domain.UpdateCat) error {
 	}
 
 	setQuery := strings.Join(setValues, ", ")
-	updateCatQuery := fmt.Sprintf("UPDATE cats SET %s WHERE id = $%d", setQuery, argId)
+	updateCatQuery := fmt.Sprintf("UPDATE cats SET %s WHERE row_id = $%d", setQuery, argId)
 	args = append(args, id)
 
-	if _, err := r.db.Exec(r.ctx, updateCatQuery, args...); err != nil {
+	_, err := r.db.Exec(context.Background(), updateCatQuery, args...)
+	if err != nil {
 		logrus.Error(err, "Error occurred while updating row from table cats")
 		return err
 	}
@@ -76,9 +77,21 @@ func (r *CatPostgres) UpdateCat(id int, input domain.UpdateCat) error {
 }
 
 func (r *CatPostgres) DeleteCat(id int) error {
-	deleteCatQuery := fmt.Sprintf("DELETE FROM cats WHERE id = $1")
-	if _, err := r.db.Exec(r.ctx, deleteCatQuery, id); err != nil {
+	deleteCatQuery := fmt.Sprintf("DELETE FROM cats WHERE row_id = $1")
+	_, err := r.db.Exec(context.Background(), deleteCatQuery, id)
+	if err != nil {
 		logrus.Error(err, "Error occurred while deleting row from table cats")
+		return err
+	}
+
+	return nil
+}
+
+func (r *CatPostgres) UploadImage(id int, path string) error {
+	UpdateImagePathCatQuery := fmt.Sprintf("UPDATE cats SET image_path=$1 WHERE row_id = $2")
+	_, err := r.db.Exec(context.Background(), UpdateImagePathCatQuery, path, id)
+	if err != nil {
+		logrus.Error(err, "Error occurred while updating image path table cats")
 		return err
 	}
 

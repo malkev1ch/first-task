@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: "database"
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=qwerty
+    volumes:
+      - database_postgres:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: first_task
+    environment:
+      - DB_PASSWORD=qwerty
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+volumes:
+  database_postgres:

@@ -30,7 +30,7 @@ func main() {
 
 	repo := repository.NewRepositoryPostgres(db)
 	services := service.NewService(repo)
-	handlers := handler.NewHandler(services)
+	handlers := handler.NewHandler(services, cfg)
 	srv := server.NewServer(cfg, handlers.InitRoutes())
 
 	go func() {

@@ -28,3 +28,8 @@ func (s *CatService) UpdateCat(id int, input domain.UpdateCat) error {
 func (s *CatService) DeleteCat(id int) error {
 	return s.repo.DeleteCat(id)
 }
+
+func (s *CatService) UploadImage(id int, path string) error {
+	return s.repo.UploadImage(id, path)
+}
+

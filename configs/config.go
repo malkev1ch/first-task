@@ -9,9 +9,9 @@ import (
 
 type (
 	Config struct {
-		Environment string
 		Postgres    PostgresConfig
 		HTTP        HTTPConfig
+		Image       ImageStorage
 	}
 
 	PostgresConfig struct {
@@ -28,6 +28,9 @@ type (
 		ReadTimeout        time.Duration
 		WriteTimeout       time.Duration
 		MaxHeaderMegabytes int
+	}
+	ImageStorage struct {
+		PhotoPathCat string
 	}
 )
 
@@ -66,6 +69,10 @@ func unmarshal(cfg *Config) error {
 	}
 
 	if err := viper.UnmarshalKey("http", &cfg.HTTP); err != nil {
+		return err
+	}
+
+	if err := viper.UnmarshalKey("image", &cfg.Image); err != nil {
 		return err
 	}
 

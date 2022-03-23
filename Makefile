@@ -1,10 +1,10 @@
 run:
 	DB_PASSWORD=qwerty go run cmd/main.go
 
-image:
+image-up:
 	docker build -t first-task-image:v1 .
 
-container:
+container-up:
 	docker run --name first-task -p 80:80 first-task-image:v1
 
 postgres:

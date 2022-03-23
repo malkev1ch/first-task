@@ -11,7 +11,9 @@ FROM alpine:latest
 WORKDIR /root/
 
 COPY --from=builder /first-task/bin/app .
+COPY --from=builder /first-task/configs configs/
 
 EXPOSE 80
 
-CMD ["./app"]
+CMD ["ls"]
+CMD ["./bin/app"]

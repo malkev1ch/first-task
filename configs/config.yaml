@@ -7,6 +7,10 @@ db:
 
 http:
   port: 80
+  host: localhost
   MaxHeaderMegabytes: 1
   readTimeout: 10s
   writeTimeout: 10s
+
+image:
+  PhotoPathCat: Image/CatsPhoto/
