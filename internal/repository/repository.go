@@ -1,25 +1,14 @@
 package repository
 
 import (
-	"github.com/jackc/pgx/v4"
-	"github.com/malkev1ch/first-task/internal/domain"
-	"github.com/malkev1ch/first-task/internal/repository/postgres"
+	"context"
+	"github.com/malkev1ch/first-task/internal/model"
 )
 
-type Cat interface {
-	CreateCat(input domain.CreateCat) (*int, error)
-	GetCat(id int) (*domain.Cat, error)
-	UpdateCat(id int, input domain.UpdateCat) error
-	DeleteCat(id int) error
-	UploadImage(id int, path string) error
-}
-
-type Repository struct {
-	Cat
-}
-
-func NewRepositoryPostgres(db *pgx.Conn) *Repository {
-	return &Repository{
-		Cat: postgres.NewCatPostgres(db),
-	}
+type Repository interface {
+	Create(ctx context.Context, cat *model.Cat) (int, error)
+	Get(ctx context.Context, id int) (*model.Cat, error)
+	Update(ctx context.Context, id int, input *model.Cat) error
+	Delete(ctx context.Context, id int) error
+	UploadImage(ctx context.Context, id int, path string) error
 }

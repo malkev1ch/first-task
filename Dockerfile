@@ -1,19 +1,17 @@
 FROM golang:1.17-alpine3.15 AS builder
 
-COPY . /first-task/
-WORKDIR /first-task/
+COPY . /github.com/malkev1ch/first-task/
+WORKDIR /github.com/malkev1ch/first-task/
 
 RUN go mod download
-RUN DB_PASSWORD=qwerty go build -o ./bin/app cmd/main.go
+RUN go build -o ./bin/app main.go
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /first-task/bin/app .
-COPY --from=builder /first-task/configs configs/
+COPY --from=builder /github.com/malkev1ch/first-task/bin/app .
 
-EXPOSE 80
+EXPOSE 8080
 
-CMD ["ls"]
-CMD ["./bin/app"]
+CMD ["./app"]

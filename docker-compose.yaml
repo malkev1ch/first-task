@@ -3,24 +3,40 @@ version: "3.8"
 services:
   db:
     image: postgres:14-alpine
-    container_name: "database"
+    container_name: first-task-database
     ports:
       - "5436:5432"
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=qwerty
+    restart: always
     volumes:
-      - database_postgres:/var/lib/postgresql/data
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - application
 
   app:
     build: .
-    container_name: first_task
-    environment:
-      - DB_PASSWORD=qwerty
+    container_name: first-task
     ports:
-      - "8080:80"
+      - "8080:8080"
+    env_file:
+      - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - application
+
+networks:
+  application:
+    driver: bridge
+
 volumes:
-  database_postgres:
+  database:
