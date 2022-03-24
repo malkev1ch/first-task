@@ -19,23 +19,23 @@ services:
     networks:
       - application
 
-  mongodb:
-    image: mongo:5.0
-    ports:
-      - "27018:27017"
-    env_file:
-      - env/mongo.env
-    volumes:
-      - "./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro"
-      - dbdata:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    networks:
-      - application
+#  mongodb:
+#    image: mongo:5.0
+#    ports:
+#      - "27018:27017"
+#    env_file:
+#      - env/mongo.env
+#    volumes:
+#      - "./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro"
+#      - dbdata:/data/db
+#    healthcheck:
+#      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+#      interval: 10s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 40s
+#    networks:
+#      - application
 
   golang:
     build: .
@@ -49,8 +49,8 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
-      mongodb:
-        condition: service_healthy
+#      mongodb:
+#        condition: service_healthy
     networks:
       - application
 

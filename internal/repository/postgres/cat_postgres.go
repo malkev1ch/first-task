@@ -11,7 +11,7 @@ import (
 )
 
 // Create method saves object Cat into postgres database.
-func (r RepositoryPostgres) Create(ctx context.Context, input *model.Cat) (string, error) {
+func (r RepositoryPostgres) Create(ctx context.Context, input *model.CreateCat) (string, error) {
 	id := uuid.New().String()
 	logrus.WithFields(logrus.Fields{
 		"id":         id,
@@ -31,7 +31,7 @@ func (r RepositoryPostgres) Create(ctx context.Context, input *model.Cat) (strin
 
 // Get method returns object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, error) {
+func (r RepositoryPostgres) Get(ctx context.Context, id string) (model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("postgres repository: get cat")
@@ -40,15 +40,15 @@ func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, err
 	if err := r.DB.QueryRow(ctx, getCatQuery, id).Scan(&cat.ID, &cat.Name, &cat.DateBirth, &cat.Vaccinated,
 		&cat.ImagePath); err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while selecting row from table cats")
-		return nil, fmt.Errorf("postgres repository: can't get cat - %w", err)
+		return cat, fmt.Errorf("postgres repository: can't get cat - %w", err)
 	}
 
-	return &cat, nil
+	return cat, nil
 }
 
 // Update method updates object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.Cat) error {
+func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.UpdateCat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,

@@ -1,3 +1,18 @@
+//	Package classification of Cats storage API
+//
+//	Documentation for Cats storage API
+//
+//	Schemes: http
+//	Host: localhost:8080
+//	BasePath: /
+//	Version: 1.0.0
+//
+//	Consumes:
+//	 - application/json
+//
+//	Produces:
+//	 - application/json
+//	swagger:meta
 package main
 
 import (
@@ -46,16 +61,23 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
-	cat := router.Group("/cat")
+	cat := router.Group("/cats")
 
 	{
-		cat.GET("/:id", handlers.GetCat)
+		cat.GET("/:uuid", handlers.GetCat)
 		cat.POST("/", handlers.CreateCat)
-		cat.PUT("/:id", handlers.UpdateCat)
-		cat.DELETE("/:id", handlers.DeleteCat)
-		cat.POST("/:id/image", handlers.UploadCatImage)
-		cat.GET("/:id/image", handlers.GetCatImage)
+		cat.PUT("/:uuid", handlers.UpdateCat)
+		cat.DELETE("/:uuid", handlers.DeleteCat)
+		cat.POST("/:uuid/image", handlers.UploadCatImage)
+		cat.GET("/:uuid/image", handlers.GetCatImage)
 	}
+	//TODO JWT
+	//auth := router.Group("/auth")
+	//{
+	//	auth.POST("/sign-up", handlers.signUp)
+	//	auth.POST("/sign-in", handlers.signIn)
+	//	auth.POST("/logout", handlers.signIn)
+	//}
 
 	router.Logger.Fatal(router.Start(cfg.HTTPServer))
 

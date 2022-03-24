@@ -1,0 +1,251 @@
+basePath: /
+consumes:
+- application/json
+definitions:
+  Cat:
+    properties:
+      dateBirth:
+        description: The birthdate of a cat
+        example: "2018-09-22T12:42:31Z"
+        format: date-time
+        type: string
+        x-go-name: DateBirth
+      id:
+        description: The UUID of a cat
+        example: 6204037c-30e6-408b-8aaa-dd8219860b4b
+        type: string
+        x-go-name: ID
+      imagePath:
+        description: The image path of vaccination of a cat
+        example: 1c219a3f-a959-4395-81f0-4e735040ed61.webp
+        type: string
+        x-go-name: ImagePath
+      name:
+        description: The Name of a cat
+        example: Some name
+        type: string
+        x-go-name: Name
+      vaccinated:
+        description: The status of vaccination of a cat
+        example: true
+        type: boolean
+        x-go-name: Vaccinated
+    required:
+    - name
+    - dateBirth
+    - vaccinated
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
+  CreateCat:
+    description: CreateCat is the struct for adding a cat
+    properties:
+      dateBirth:
+        description: The birthdate of a cat
+        example: "2018-09-22T12:42:31Z"
+        format: date-time
+        type: string
+        x-go-name: DateBirth
+      name:
+        description: The Name of a cat
+        example: Some name
+        type: string
+        x-go-name: Name
+      vaccinated:
+        description: The status of vaccination of a cat
+        example: true
+        type: boolean
+        x-go-name: Vaccinated
+    required:
+    - name
+    - dateBirth
+    - vaccinated
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
+  ErrorResponseBody:
+    properties:
+      error:
+        description: Error An optional detailed description of the actual error. Only
+          included if running in developer mode.
+        type: string
+        x-go-name: Error
+      message:
+        description: a human readable version of the error
+        type: string
+        x-go-name: Message
+    required:
+    - message
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/handler
+  SuccessResponseBody:
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/handler
+  UpdateCat:
+    description: UpdateCat is the struct for update a cat
+    properties:
+      dateBirth:
+        description: The birthdate of a cat
+        example: "2018-09-22T12:42:31Z"
+        format: date-time
+        type: string
+        x-go-name: DateBirth
+      name:
+        description: The Name of a cat
+        example: Some name
+        type: string
+        x-go-name: Name
+      vaccinated:
+        description: The status of vaccination of a cat
+        example: true
+        type: boolean
+        x-go-name: Vaccinated
+    required:
+    - name
+    - dateBirth
+    - vaccinated
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
+host: localhost:8080
+info:
+  description: Documentation for Cats storage API
+  title: of Cats storage API
+  version: 1.0.0
+paths:
+  /cats:
+    post:
+      description: Creates a new cat element.
+      operationId: CreateCat
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateCat'
+        x-go-name: Body
+      responses:
+        "201":
+          $ref: '#/responses/okResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Create cat
+      tags:
+      - cats
+  /cats/{uuid}:
+    delete:
+      operationId: DeleteCat
+      parameters:
+      - in: path
+        name: uuid
+        required: true
+        type: string
+        x-go-name: CatID
+      responses:
+        "200":
+          $ref: '#/responses/okResponse'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Remove cat from storage.
+      tags:
+      - cats
+    get:
+      description: Returns a cat with the given UUID.
+      operationId: GetCat
+      parameters:
+      - in: path
+        name: uuid
+        required: true
+        type: string
+        x-go-name: CatID
+      responses:
+        "200":
+          $ref: '#/responses/getCatResponse'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Get cat by UUID.
+      tags:
+      - cats
+    put:
+      description: Update a cat with the given UUID.
+      operationId: UpdateCat
+      parameters:
+      - in: path
+        name: uuid
+        required: true
+        type: string
+        x-go-name: CatID
+      responses:
+        "200":
+          $ref: '#/responses/okResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Update cat.
+      tags:
+      - cats
+  /cats/{uuid}/image:
+    post:
+      consumes:
+      - multipart/form-data
+      operationId: UploadCatImage
+      parameters:
+      - in: path
+        name: uuid
+        required: true
+        type: string
+        x-go-name: CatID
+      - description: MyFormFile desc.
+        in: formData
+        name: image
+        type: file
+        x-go-name: MyFormFile
+      responses:
+        "200":
+          $ref: '#/responses/okResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Set or update cats image.
+      tags:
+      - cats
+produces:
+- application/json
+responses:
+  badRequestError:
+    description: BadRequestError is returned when the request is invalid and it cannot
+      be processed.
+    schema:
+      $ref: '#/definitions/ErrorResponseBody'
+  genericError:
+    description: |-
+      A GenericError is the default error message that is generated.
+      For certain status codes there are more appropriate error structures.
+    schema:
+      $ref: '#/definitions/ErrorResponseBody'
+  getCatResponse:
+    description: ""
+    schema:
+      $ref: '#/definitions/Cat'
+  internalServerError:
+    description: InternalServerError is a general error indicating something went
+      wrong internally.
+    schema:
+      $ref: '#/definitions/ErrorResponseBody'
+  notFoundError:
+    description: NotFoundError is returned when the request is invalid and it cannot
+      be processed.
+    schema:
+      $ref: '#/definitions/ErrorResponseBody'
+  okResponse:
+    description: An OKResponse is returned if the request was successful.
+    schema:
+      $ref: '#/definitions/SuccessResponseBody'
+schemes:
+- http
+swagger: "2.0"

@@ -6,15 +6,15 @@ import (
 	"github.com/malkev1ch/first-task/internal/model"
 )
 
-func (s Service) Create(ctx context.Context, cat *model.Cat) (string, error) {
+func (s Service) Create(ctx context.Context, cat *model.CreateCat) (string, error) {
 	return s.repo.Create(ctx, cat)
 }
 
-func (s Service) Get(ctx context.Context, id string) (*model.Cat, error) {
+func (s Service) Get(ctx context.Context, id string) (model.Cat, error) {
 	return s.repo.Get(ctx, id)
 }
 
-func (s Service) Update(ctx context.Context, id string, input *model.Cat) error {
+func (s Service) Update(ctx context.Context, id string, input *model.UpdateCat) error {
 	return s.repo.Update(ctx, id, input)
 }
 
