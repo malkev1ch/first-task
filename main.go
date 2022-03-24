@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/malkev1ch/first-task/internal/configs"
+	"github.com/malkev1ch/first-task/internal/config"
 	"github.com/malkev1ch/first-task/internal/handler"
 	"github.com/malkev1ch/first-task/internal/repository"
 	"github.com/malkev1ch/first-task/internal/repository/mongodb"
@@ -24,16 +23,12 @@ import (
 )
 
 func main() {
-	cfg := configs.Config{}
+	cfg := config.Config{}
 	if err := env.Parse(&cfg); err != nil {
-		logrus.Fatal(err, "wrong configs variables")
+		logrus.Fatal(err, "wrong config variables")
 	}
 
-	fmt.Printf("%+v\n", cfg)
-
-	router := echo.New()
-
-	repo, err := CreateDBConnection(cfg)
+	repo, err := CreateDBConnection(&cfg)
 	if err != nil {
 		logrus.Fatal(err, "err initializing DB")
 	}
@@ -41,6 +36,7 @@ func main() {
 	services := service.NewService(repo)
 	handlers := handler.NewHandler(services, &cfg)
 
+	router := echo.New()
 	router.Logger.SetLevel(log.DEBUG)
 	router.Use(middleware.Logger())
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -50,6 +46,7 @@ func main() {
 	}))
 
 	cat := router.Group("/cat")
+
 	{
 		cat.GET("/:id", handlers.GetCat)
 		cat.POST("/", handlers.CreateCat)
@@ -58,7 +55,6 @@ func main() {
 		cat.POST("/:id/image", handlers.UploadCatImage)
 		cat.GET("/:id/image", handlers.GetCatImage)
 	}
-	//router.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	router.Logger.Fatal(router.Start(cfg.HTTPServer))
 
@@ -80,11 +76,11 @@ func main() {
 	//if err := repo.Close(context.Background()); err != nil {
 	//	logrus.Fatal(err, "failed to stop connection db")
 	//}
-
 }
-func CreateDBConnection(cfg configs.Config) (repository.Repository, error) {
+
+func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {
 	switch cfg.CurrentDB {
-	case "mongodb":
+	case "mongo":
 		client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoURL))
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
@@ -96,7 +92,7 @@ func CreateDBConnection(cfg configs.Config) (repository.Repository, error) {
 				"status": "successfully connected to mongodb database.",
 			}).Info("mongodb repository info.")
 		}
-		return mongodb.RepositoryMongo{DB: client}, nil
+		return mongodb.RepositoryMongo{DB: client}, err
 	case "postgres":
 		conn, err := pgxpool.Connect(context.Background(), cfg.PostgresURL)
 		if err != nil {
@@ -109,7 +105,7 @@ func CreateDBConnection(cfg configs.Config) (repository.Repository, error) {
 				"status": "successfully connected to postgres database.",
 			}).Info("postgres repository info.")
 		}
-		return postgres.RepositoryPostgres{DB: conn}, nil
+		return postgres.RepositoryPostgres{DB: conn}, err
 	}
 
 	logrus.WithFields(logrus.Fields{

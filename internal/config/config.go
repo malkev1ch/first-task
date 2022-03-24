@@ -1,7 +1,7 @@
-package configs
+package config
 
 type Config struct {
-	CurrentDB   string `env:"CURRENTDB" envDefault:"postgres"`
+	CurrentDB   string `env:"CURRENT_DB" envDefault:"postgres"`
 	PostgresURL string `env:"POSTGRES_URL"`
 	MongoURL    string `env:"MONGO_URL"`
 	ImagePath   string `env:"IMAGE_PATH"`

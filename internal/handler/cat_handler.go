@@ -9,32 +9,31 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 )
 
-//var (
-//	imageTypes = map[string]interface{}{
-//		"image/jpeg": nil,
-//		"image/png":  nil,
-//	}
-//)
+var (
+	imageTypes = map[string]interface{}{
+		"image/jpeg": nil,
+		"image/png":  nil,
+	}
+)
 
 func (h *Handler) CreateCat(ctx echo.Context) error {
 	var input model.Cat
 	if err := ctx.Bind(&input); err != nil {
 		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("error while creating cat"))
+		return ctx.String(http.StatusInternalServerError, "error while creating cat")
 	}
 
 	id, err := h.Services.Create(ctx.Request().Context(), &input)
 	if err != nil {
 		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("error while creating cat"))
+		return ctx.String(http.StatusInternalServerError, "error while creating cat")
 	}
 
 	type idResponse struct {
-		ID int `json:"id"`
+		ID string `json:"id"`
 	}
 
 	return ctx.JSON(http.StatusCreated, idResponse{
@@ -43,13 +42,7 @@ func (h *Handler) CreateCat(ctx echo.Context) error {
 }
 
 func (h *Handler) GetCat(ctx echo.Context) error {
-
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logrus.Errorf("handler: error occurred while converting query parameter - %e", err)
-		return ctx.JSON(http.StatusBadRequest, err.Error())
-	}
-
+	id := ctx.Param("id")
 	cat, err := h.Services.Get(ctx.Request().Context(), id)
 	if err != nil {
 		logrus.Error(err)
@@ -60,47 +53,30 @@ func (h *Handler) GetCat(ctx echo.Context) error {
 }
 
 func (h *Handler) UpdateCat(ctx echo.Context) error {
-
+	id := ctx.Param("id")
 	var input model.Cat
-
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logrus.Errorf("handler: error occurred while converting query parameter - %e", err)
-		return ctx.JSON(http.StatusBadRequest, err.Error())
-	}
-
 	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	if err := h.Services.Update(ctx.Request().Context(), id, &input); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
 	return ctx.String(http.StatusOK, "")
 }
 
 func (h *Handler) DeleteCat(ctx echo.Context) error {
-
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, err.Error())
-	}
-
+	id := ctx.Param("id")
 	if err := h.Services.Delete(ctx.Request().Context(), id); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
 	return ctx.JSON(http.StatusOK, "The cat has been successfully deleted")
 }
 
 func (h *Handler) UploadCatImage(ctx echo.Context) error {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		logrus.Errorf("handler: error occurred while converting query parameter - %e", err)
-		return ctx.String(http.StatusBadRequest, err.Error())
-	}
-
+	id := ctx.Param("id")
 	file, err := ctx.FormFile("image")
 	if err != nil {
 		logrus.Errorf("handler: can't parse form file - %e", err)
@@ -110,7 +86,7 @@ func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	src, err := file.Open()
 	if err != nil {
 		logrus.Errorf("handler: can't open file - %e", err)
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 	defer src.Close()
 
@@ -118,32 +94,42 @@ func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	dst, err := os.Create(filename)
 	if err != nil {
 		logrus.Errorf("handler: can't create file locally - %e", err)
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 	defer dst.Close()
 
+	buffer := make([]byte, file.Size)
+
+	if _, err = src.Read(buffer); err != nil {
+		logrus.Errorf("handler: can't read file - %e", err)
+		return ctx.String(http.StatusInternalServerError, err.Error())
+	}
+
+	contentType := http.DetectContentType(buffer)
+
+	// Validate File Type
+	if _, ex := imageTypes[contentType]; !ex {
+		logrus.Errorf("cannot read the file")
+		return ctx.String(http.StatusBadRequest, "file type is not supported")
+	}
+
 	if _, err = io.Copy(dst, src); err != nil {
 		logrus.Errorf("handler: can't copy file - %e", err)
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
 	if err := h.Services.UploadImage(ctx.Request().Context(), id, filename); err != nil {
-		logrus.Error(err)
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		logrus.Errorf("handler: can't update cats image path - %e", err)
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
-	return ctx.JSON(http.StatusOK, dataResponse{
-		Data: filename,
-	})
+	type response struct {
+		Path string `json:"path"`
+	}
 
-	//TODO
-	//contentType := http.DetectContentType(buffer)
-	//
-	//// Validate File Type
-	//if _, ex := imageTypes[contentType]; !ex {
-	//	logrus.Info("cannot read the file")
-	//	return ctx.JSON(http.StatusBadRequest, "file type is not supported")
-	//}
+	return ctx.JSON(http.StatusOK, response{
+		Path: filename,
+	})
 }
 
 func (h *Handler) generateFileName(filename string) string {
@@ -157,15 +143,10 @@ func getFileExtension(filename string) string {
 }
 
 func (h *Handler) GetCatImage(ctx echo.Context) error {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, err.Error())
-	}
-
+	id := ctx.Param("id")
 	cat, err := h.Services.Get(ctx.Request().Context(), id)
 	if err != nil {
-		logrus.Error(err)
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
 	return ctx.File(*cat.ImagePath)

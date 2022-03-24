@@ -4,8 +4,9 @@ package model
 import "time"
 
 type Cat struct {
-	Name       *string    `json:"name"`
-	DateBirth  *time.Time `json:"dateBirth"`
-	Vaccinated *bool      `json:"vaccinated"`
-	ImagePath  *string    `json:"imagePath,omitempty"`
+	ID         *string    `json:"id" bson:"_id"`
+	Name       *string    `json:"name" bson:"name"`
+	DateBirth  *time.Time `json:"dateBirth" bson:"dateBirth"`
+	Vaccinated *bool      `json:"vaccinated" bson:"vaccinated"`
+	ImagePath  *string    `json:"imagePath,omitempty" bson:"imagePath"`
 }

@@ -13,5 +13,5 @@ WORKDIR /root/
 COPY --from=builder /github.com/malkev1ch/first-task/bin/app .
 
 EXPOSE 8080
-
+CMD ["mkdir Data"]
 CMD ["./app"]

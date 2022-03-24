@@ -3,74 +3,108 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-func (r RepositoryMongo) Create(ctx context.Context, input *model.Cat) (int, error) {
+// Create method saves object Cat into mongo database
+func (r RepositoryMongo) Create(ctx context.Context, input *model.Cat) (string, error) {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
 		"Vaccinated": input.Vaccinated,
-	}).Debugf("repository: create cat")
-	var id int
+	}).Debugf("mongo repository: create cat")
+	col := r.DB.Database("mongo_database").Collection("cats")
+
+	id := uuid.New().String()
+
+	_, err := col.InsertOne(ctx, bson.D{
+		{Key: "_id", Value: id},
+		{Key: "name", Value: input.Name},
+		{Key: "dateBirth", Value: input.DateBirth},
+		{Key: "vaccinated", Value: input.Vaccinated},
+	})
+	if err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while inserting new row in table cats")
+		return "", fmt.Errorf("mongo repository: can't create cat - %w", err)
+	}
 
 	return id, nil
 }
 
-func (r RepositoryMongo) Get(ctx context.Context, id int) (*model.Cat, error) {
+// Get method returns object Cat from mongo database
+// with selection by id
+func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
-	}).Debugf("repository: get cat")
+	}).Debugf("mongo repository: get cat")
+	col := r.DB.Database("mongo_database").Collection("cats")
 	var cat model.Cat
 
+	err := col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&cat)
+	if err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while selecting row from table cats")
+		return nil, fmt.Errorf("mongo repository: can't get cat - %w", err)
+	}
 	return &cat, nil
 }
 
-func (r RepositoryMongo) Update(ctx context.Context, id int, input *model.Cat) error {
+// Update method updates object Cat from mongo database
+// with selection by id
+func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.Cat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
 		"Vaccinated": input.Vaccinated,
-	}).Debugf("repository: update cat")
+	}).Debugf("mongo repository: update cat")
 
-	setValues := make([]string, 0)
-	args := make([]interface{}, 0)
-	argId := 1
+	col := r.DB.Database("mongo_database").Collection("cats")
 
-	if input.Name != nil {
-		setValues = append(setValues, fmt.Sprintf("name=$%d", argId))
-		args = append(args, *input.Name)
-		argId++
+	_, err := col.UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "name", Value: input.Name},
+			{Key: "dateBirth", Value: input.DateBirth},
+			{Key: "vaccinated", Value: input.Vaccinated},
+		}}})
+	if err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while updating row from table cats")
+		return fmt.Errorf("mongo repository: can't update cat - %w", err)
 	}
-
-	if input.DateBirth != nil {
-		setValues = append(setValues, fmt.Sprintf("date_birth=$%d", argId))
-		args = append(args, *input.DateBirth)
-		argId++
-	}
-
-	if input.Vaccinated != nil {
-		setValues = append(setValues, fmt.Sprintf("vaccinated=$%d", argId))
-		args = append(args, *input.Vaccinated)
-		argId++
-	}
-
-	//setQuery := strings.Join(setValues, ", ")
-	args = append(args, id)
-
 	return nil
 }
 
-func (r RepositoryMongo) Delete(ctx context.Context, id int) error {
+// Delete method deletes object Cat from mongo database
+// with selection by id
+func (r RepositoryMongo) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
-	}).Debugf("repository: delete cat")
-
+	}).Debugf("mongo repository: delete cat")
+	col := r.DB.Database("mongo_database").Collection("cats")
+	_, err := col.DeleteOne(ctx, bson.D{{Key: "_id", Value: id}})
+	if err != nil {
+		logrus.Error(err, "Error occurred while deleting row from table cats")
+		return fmt.Errorf("mongodb repository: can't delete cat - %w", err)
+	}
 	return nil
 }
 
-func (r RepositoryMongo) UploadImage(ctx context.Context, id int, path string) error {
+// UploadImage method updates image path object Cat from mongo database
+// with selection by id
+func (r RepositoryMongo) UploadImage(ctx context.Context, id, path string) error {
+	logrus.WithFields(logrus.Fields{
+		"ID": id,
+	}).Debugf("mongo repository: update cats image path")
+	col := r.DB.Database("mongo_database").Collection("cats")
+	_, err := col.UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{
+		{Key: "$set", Value: bson.D{
+			{Key: "imagePath", Value: path},
+		}}})
 
+	if err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while updating image path table cats")
+		return fmt.Errorf("mongo repository: can't update cats image path - %w", err)
+	}
 	return nil
 }

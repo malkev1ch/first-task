@@ -1,15 +1,13 @@
 version: "3.8"
 
 services:
-  db:
+  postgresdb:
     image: postgres:14-alpine
     container_name: first-task-database
     ports:
       - "5436:5432"
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=qwerty
+    env_file:
+      - env/postgres.env
     restart: always
     volumes:
       - database:/var/lib/postgresql/data
@@ -21,18 +19,41 @@ services:
     networks:
       - application
 
-  app:
+  mongodb:
+    image: mongo:5.0
+    ports:
+      - "27018:27017"
+    env_file:
+      - env/mongo.env
+    volumes:
+      - "./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro"
+      - dbdata:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - application
+
+  golang:
     build: .
     container_name: first-task
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - env/golang.env
+    volumes:
+      - "/home/andreimalkevich/first-task/Data/:/Data/"
     depends_on:
-      db:
+      postgresdb:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     networks:
       - application
+
 
 networks:
   application:
@@ -40,3 +61,4 @@ networks:
 
 volumes:
   database:
+  dbdata:
