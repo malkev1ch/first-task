@@ -3,13 +3,14 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
-// Create method saves object Cat into postgres database
+// Create method saves object Cat into postgres database.
 func (r RepositoryPostgres) Create(ctx context.Context, input *model.Cat) (string, error) {
 	id := uuid.New().String()
 	logrus.WithFields(logrus.Fields{
@@ -29,7 +30,7 @@ func (r RepositoryPostgres) Create(ctx context.Context, input *model.Cat) (strin
 }
 
 // Get method returns object Cat from postgres database
-// with selection by id
+// with selection by id.
 func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
@@ -46,7 +47,7 @@ func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, err
 }
 
 // Update method updates object Cat from postgres database
-// with selection by id
+// with selection by id.
 func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.Cat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
@@ -90,14 +91,13 @@ func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.
 }
 
 // Delete method deletes object Cat from postgres database
-// with selection by id
+// with selection by id.
 func (r RepositoryPostgres) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("repository: delete cat")
 	deleteCatQuery := "DELETE FROM cats WHERE id = $1"
 	_, err := r.DB.Exec(ctx, deleteCatQuery, id)
-
 	if err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while deleting row from table cats")
 		return fmt.Errorf("postgres repository: can't delete cat - %w", err)
@@ -107,14 +107,13 @@ func (r RepositoryPostgres) Delete(ctx context.Context, id string) error {
 }
 
 // UploadImage method updates image path object Cat from postgres database
-// with selection by id
+// with selection by id.
 func (r RepositoryPostgres) UploadImage(ctx context.Context, id, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("postgres repository: update cats image path")
 	UpdateImagePathCatQuery := "UPDATE cats SET image_path=$1 WHERE id = $2"
 	_, err := r.DB.Exec(ctx, UpdateImagePathCatQuery, path, id)
-
 	if err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while updating image path table cats")
 		return fmt.Errorf("postgres repository: can't update cats image path - %w", err)

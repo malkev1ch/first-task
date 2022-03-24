@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo"
@@ -16,10 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -71,11 +72,6 @@ func main() {
 	if err := router.Shutdown(ctx); err != nil {
 		logrus.Fatal(err, "failed to stop server")
 	}
-
-	//TODO close db
-	//if err := repo.Close(context.Background()); err != nil {
-	//	logrus.Fatal(err, "failed to stop connection db")
-	//}
 }
 
 func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {

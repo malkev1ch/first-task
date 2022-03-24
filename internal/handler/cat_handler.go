@@ -2,22 +2,21 @@ package handler
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/labstack/echo"
-	"github.com/malkev1ch/first-task/internal/model"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/labstack/echo"
+	"github.com/malkev1ch/first-task/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
-var (
-	imageTypes = map[string]interface{}{
-		"image/jpeg": nil,
-		"image/png":  nil,
-	}
-)
+var imageTypes = map[string]interface{}{
+	"image/jpeg": nil,
+	"image/png":  nil,
+}
 
 func (h *Handler) CreateCat(ctx echo.Context) error {
 	var input model.Cat

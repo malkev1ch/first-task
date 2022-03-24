@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/malkev1ch/first-task/internal/model"
 )
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/malkev1ch/first-task/internal/model"
 )
 

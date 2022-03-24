@@ -3,13 +3,14 @@ package mongodb
 import (
 	"context"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Create method saves object Cat into mongo database
+// Create method saves object Cat into mongo database.
 func (r RepositoryMongo) Create(ctx context.Context, input *model.Cat) (string, error) {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
@@ -35,7 +36,7 @@ func (r RepositoryMongo) Create(ctx context.Context, input *model.Cat) (string, 
 }
 
 // Get method returns object Cat from mongo database
-// with selection by id
+// with selection by id.
 func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
@@ -52,7 +53,7 @@ func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error)
 }
 
 // Update method updates object Cat from mongo database
-// with selection by id
+// with selection by id.
 func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.Cat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
@@ -67,7 +68,8 @@ func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.Cat
 			{Key: "name", Value: input.Name},
 			{Key: "dateBirth", Value: input.DateBirth},
 			{Key: "vaccinated", Value: input.Vaccinated},
-		}}})
+		}},
+	})
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while updating row from table cats")
 		return fmt.Errorf("mongo repository: can't update cat - %w", err)
@@ -76,7 +78,7 @@ func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.Cat
 }
 
 // Delete method deletes object Cat from mongo database
-// with selection by id
+// with selection by id.
 func (r RepositoryMongo) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
@@ -91,7 +93,7 @@ func (r RepositoryMongo) Delete(ctx context.Context, id string) error {
 }
 
 // UploadImage method updates image path object Cat from mongo database
-// with selection by id
+// with selection by id.
 func (r RepositoryMongo) UploadImage(ctx context.Context, id, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
@@ -100,8 +102,8 @@ func (r RepositoryMongo) UploadImage(ctx context.Context, id, path string) error
 	_, err := col.UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{
 		{Key: "$set", Value: bson.D{
 			{Key: "imagePath", Value: path},
-		}}})
-
+		}},
+	})
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while updating image path table cats")
 		return fmt.Errorf("mongo repository: can't update cats image path - %w", err)
