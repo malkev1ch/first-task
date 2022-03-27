@@ -4,6 +4,12 @@ run:
 build:
 	POSTGRES_URL=postgres://postgres:qwerty@localhost:5432/postgres IMAGE_PATH=Data/CatImage/ go build -o ./bin cmd/main.go
 
+lint:
+	golangci-lint run
+
+swagger:
+	swagger generate spec --scan-models --output=./swagger.yaml
+
 image:
 	docker build -t first-task-local-image:v1 .
 

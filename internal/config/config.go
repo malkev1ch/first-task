@@ -6,4 +6,5 @@ type Config struct {
 	MongoURL    string `env:"MONGO_URL"`
 	ImagePath   string `env:"IMAGE_PATH"`
 	HTTPServer  string `env:"HTTP_SERVER_ADDRESS" envDefault:"localhost:8080"`
+	JWTKey      string `env:"JWT_KEY"`
 }

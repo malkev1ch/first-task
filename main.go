@@ -1,4 +1,4 @@
-//	Package classification of Cats storage API
+//	Cats storage API
 //
 //	Documentation for Cats storage API
 //
@@ -12,6 +12,13 @@
 //
 //	Produces:
 //	 - application/json
+//
+//     SecurityDefinitions:
+//     AdminAuth:
+//          type: apiKey
+//          name: Authorization
+//          in: header
+//
 //	swagger:meta
 package main
 
@@ -51,7 +58,6 @@ func main() {
 
 	services := service.NewService(repo)
 	handlers := handler.NewHandler(services, &cfg)
-
 	router := echo.New()
 	router.Logger.SetLevel(log.DEBUG)
 	router.Use(middleware.Logger())
@@ -61,8 +67,21 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
+	auth := router.Group("/auth")
+	{
+		auth.POST("/sign-up", handlers.SignUp)
+		auth.POST("/sign-in", handlers.SignIn)
+		auth.POST("/refresh", handlers.RefreshToken)
+	}
+
 	cat := router.Group("/cats")
 
+	configJWTMiddleware := middleware.JWTConfig{
+		Claims:     &service.JwtCustomClaims{},
+		SigningKey: []byte(cfg.JWTKey),
+	}
+
+	cat.Use(middleware.JWTWithConfig(configJWTMiddleware))
 	{
 		cat.GET("/:uuid", handlers.GetCat)
 		cat.POST("/", handlers.CreateCat)
@@ -71,13 +90,6 @@ func main() {
 		cat.POST("/:uuid/image", handlers.UploadCatImage)
 		cat.GET("/:uuid/image", handlers.GetCatImage)
 	}
-	//TODO JWT
-	//auth := router.Group("/auth")
-	//{
-	//	auth.POST("/sign-up", handlers.signUp)
-	//	auth.POST("/sign-in", handlers.signIn)
-	//	auth.POST("/logout", handlers.signIn)
-	//}
 
 	router.Logger.Fatal(router.Start(cfg.HTTPServer))
 

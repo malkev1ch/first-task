@@ -21,7 +21,7 @@ type Cat struct {
 	// example: true
 	// required: true
 	Vaccinated bool `json:"vaccinated" bson:"vaccinated"`
-	// The image path of vaccination of a cat
+	// The image path of a cat
 	// example: 1c219a3f-a959-4395-81f0-4e735040ed61.webp
 	ImagePath string `json:"imagePath,omitempty" bson:"imagePath"`
 }

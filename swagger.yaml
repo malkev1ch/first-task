@@ -2,6 +2,24 @@ basePath: /
 consumes:
 - application/json
 definitions:
+  AuthUser:
+    description: AuthUser struct represents mandatory user information for authorisation
+    properties:
+      email:
+        description: The email of a user
+        example: qwerty@gmail.com
+        type: string
+        x-go-name: Email
+      password:
+        description: The password of a user
+        example: ZAQ!2wsx
+        type: string
+        x-go-name: Password
+    required:
+    - email
+    - password
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
   Cat:
     properties:
       dateBirth:
@@ -16,7 +34,7 @@ definitions:
         type: string
         x-go-name: ID
       imagePath:
-        description: The image path of vaccination of a cat
+        description: The image path of a cat
         example: 1c219a3f-a959-4395-81f0-4e735040ed61.webp
         type: string
         x-go-name: ImagePath
@@ -61,6 +79,30 @@ definitions:
     - vaccinated
     type: object
     x-go-package: github.com/malkev1ch/first-task/internal/model
+  CreateUser:
+    description: CreateUser struct represents mandatory user information for registration
+    properties:
+      email:
+        description: The email of a user
+        example: qwerty@gmail.com
+        type: string
+        x-go-name: Email
+      password:
+        description: The password of a user
+        example: ZAQ!2wsx
+        type: string
+        x-go-name: Password
+      userName:
+        description: The Name of a user
+        example: Some name
+        type: string
+        x-go-name: UserName
+    required:
+    - userName
+    - email
+    - password
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
   ErrorResponseBody:
     properties:
       error:
@@ -75,14 +117,45 @@ definitions:
     required:
     - message
     type: object
-    x-go-package: github.com/malkev1ch/first-task/internal/handler
+    x-go-package: github.com/malkev1ch/first-task/doc
+  RefreshToken:
+    description: RefreshToken struct represents a  refresh token
+    properties:
+      refreshToken:
+        type: string
+        x-go-name: RefreshToken
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
+  SignInResponseBody:
+    properties:
+      tokens:
+        $ref: '#/definitions/Tokens'
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/doc
+  SignUpResponseBody:
+    properties:
+      tokens:
+        $ref: '#/definitions/Tokens'
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/doc
   SuccessResponseBody:
     properties:
       message:
         type: string
         x-go-name: Message
     type: object
-    x-go-package: github.com/malkev1ch/first-task/internal/handler
+    x-go-package: github.com/malkev1ch/first-task/doc
+  Tokens:
+    description: Tokens struct represents a couple of token
+    properties:
+      accessToken:
+        type: string
+        x-go-name: AccessToken
+      refreshToken:
+        type: string
+        x-go-name: RefreshToken
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/internal/model
   UpdateCat:
     description: UpdateCat is the struct for update a cat
     properties:
@@ -111,12 +184,75 @@ definitions:
 host: localhost:8080
 info:
   description: Documentation for Cats storage API
-  title: of Cats storage API
+  title: Cats storage API
   version: 1.0.0
 paths:
+  /auth/refresh:
+    post:
+      description: Returns a couple tokens for existed user.
+      operationId: RefreshToken
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/AuthUser'
+        x-go-name: Body
+      responses:
+        "200":
+          $ref: '#/responses/refreshTokenResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Refresh a couple tokens used refresh token
+      tags:
+      - auth
+  /auth/sign-in:
+    post:
+      description: Returns a couple of tokens for existed user.
+      operationId: SignIn
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/AuthUser'
+        x-go-name: Body
+      responses:
+        "200":
+          $ref: '#/responses/signInResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Authorisation process for existed user
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      description: Returns a couple of tokens for recently created user.
+      operationId: SignUp
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateUser'
+        x-go-name: Body
+      responses:
+        "201":
+          $ref: '#/responses/signUpResponse'
+        "400":
+          $ref: '#/responses/badRequestError'
+        "500":
+          $ref: '#/responses/internalServerError'
+      summary: Registration process for new user
+      tags:
+      - auth
   /cats:
     post:
-      description: Creates a new cat element.
+      description: Creates a new cat.
       operationId: CreateCat
       parameters:
       - in: body
@@ -132,6 +268,8 @@ paths:
           $ref: '#/responses/badRequestError'
         "500":
           $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
       summary: Create cat
       tags:
       - cats
@@ -149,6 +287,8 @@ paths:
           $ref: '#/responses/okResponse'
         "500":
           $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
       summary: Remove cat from storage.
       tags:
       - cats
@@ -166,6 +306,8 @@ paths:
           $ref: '#/responses/getCatResponse'
         "500":
           $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
       summary: Get cat by UUID.
       tags:
       - cats
@@ -185,6 +327,8 @@ paths:
           $ref: '#/responses/badRequestError'
         "500":
           $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
       summary: Update cat.
       tags:
       - cats
@@ -246,6 +390,23 @@ responses:
     description: An OKResponse is returned if the request was successful.
     schema:
       $ref: '#/definitions/SuccessResponseBody'
+  refreshTokenResponse:
+    description: A RefreshTokenResponse returns a couple of token with user id.
+    schema:
+      $ref: '#/definitions/SignUpResponseBody'
+  signInResponse:
+    description: A SignInResponse returns a couple of token with user id.
+    schema:
+      $ref: '#/definitions/SignInResponseBody'
+  signUpResponse:
+    description: A SignUpResponse returns a couple of token with user id.
+    schema:
+      $ref: '#/definitions/SignUpResponseBody'
 schemes:
 - http
+securityDefinitions:
+  AdminAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

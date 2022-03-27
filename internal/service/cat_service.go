@@ -10,7 +10,7 @@ func (s Service) Create(ctx context.Context, cat *model.CreateCat) (string, erro
 	return s.repo.Create(ctx, cat)
 }
 
-func (s Service) Get(ctx context.Context, id string) (model.Cat, error) {
+func (s Service) Get(ctx context.Context, id string) (*model.Cat, error) {
 	return s.repo.Get(ctx, id)
 }
 

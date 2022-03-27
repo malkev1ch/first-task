@@ -37,7 +37,7 @@ func (r RepositoryMongo) Create(ctx context.Context, input *model.CreateCat) (st
 
 // Get method returns object Cat from mongo database
 // with selection by id.
-func (r RepositoryMongo) Get(ctx context.Context, id string) (model.Cat, error) {
+func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("mongo repository: get cat")
@@ -47,9 +47,9 @@ func (r RepositoryMongo) Get(ctx context.Context, id string) (model.Cat, error) 
 	err := col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&cat)
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while selecting row from table cats")
-		return cat, fmt.Errorf("mongo repository: can't get cat - %w", err)
+		return nil, fmt.Errorf("mongo repository: can't get cat - %w", err)
 	}
-	return cat, nil
+	return &cat, nil
 }
 
 // Update method updates object Cat from mongo database

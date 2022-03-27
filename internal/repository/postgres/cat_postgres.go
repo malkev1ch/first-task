@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -31,19 +32,23 @@ func (r RepositoryPostgres) Create(ctx context.Context, input *model.CreateCat) 
 
 // Get method returns object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Get(ctx context.Context, id string) (model.Cat, error) {
+func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
-	}).Debugf("postgres repository: get cat")
+	}).Info("postgres repository: get cat")
 	getCatQuery := "SELECT id, name, date_birth, vaccinated, image_path FROM cats WHERE id = $1"
 	var cat model.Cat
+	imageNull := sql.NullString{}
 	if err := r.DB.QueryRow(ctx, getCatQuery, id).Scan(&cat.ID, &cat.Name, &cat.DateBirth, &cat.Vaccinated,
-		&cat.ImagePath); err != nil {
+		&imageNull); err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while selecting row from table cats")
-		return cat, fmt.Errorf("postgres repository: can't get cat - %w", err)
+		return nil, fmt.Errorf("postgres repository: can't get cat - %w", err)
 	}
-
-	return cat, nil
+	if imageNull.Valid {
+		cat.ImagePath = imageNull.String
+	}
+	logrus.Infof("%+v\n", cat)
+	return &cat, nil
 }
 
 // Update method updates object Cat from postgres database
