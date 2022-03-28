@@ -1,5 +1,5 @@
 run:
-	POSTGRES_URL=postgres://postgres:qwerty@localhost:5433/postgres?sslmode=disable IMAGE_PATH=./Data/ HTTP_SERVER_ADDRESS=127.0.0.1:8080 go run main.go
+	POSTGRES_URL=postgres://postgres:qwerty@localhost:5433/postgres?sslmode=disable IMAGE_PATH=./Data/ HTTP_SERVER_ADDRESS=127.0.0.1:8080 REDIS_URL=redis://:@localhost:6380/1 go run main.go
 
 build:
 	POSTGRES_URL=postgres://postgres:qwerty@localhost:5432/postgres IMAGE_PATH=Data/CatImage/ go build -o ./bin cmd/main.go

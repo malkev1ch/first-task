@@ -24,6 +24,8 @@ package main
 
 import (
 	"context"
+	"github.com/go-redis/redis/v8"
+	"github.com/malkev1ch/first-task/internal/rediscache"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,12 +35,9 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/labstack/gommon/log"
 	"github.com/malkev1ch/first-task/internal/config"
 	"github.com/malkev1ch/first-task/internal/handler"
 	"github.com/malkev1ch/first-task/internal/repository"
-	"github.com/malkev1ch/first-task/internal/repository/mongodb"
-	"github.com/malkev1ch/first-task/internal/repository/postgres"
 	"github.com/malkev1ch/first-task/internal/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -56,11 +55,18 @@ func main() {
 		logrus.Fatal(err, "err initializing DB")
 	}
 
-	services := service.NewService(repo)
+	redisClient := redisConnection(cfg)
+	defer func() {
+		err := redisClient.Close()
+		if err != nil {
+			logrus.Errorf("error while closing redis connection - %e", err)
+		}
+	}()
+
+	cache := rediscache.NewCache(redisClient)
+	services := service.NewService(repo, cache)
 	handlers := handler.NewHandler(services, &cfg)
 	router := echo.New()
-	router.Logger.SetLevel(log.DEBUG)
-	router.Use(middleware.Logger())
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
@@ -108,7 +114,7 @@ func main() {
 	}
 }
 
-func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {
+func CreateDBConnection(cfg *config.Config) (*repository.Repository, error) {
 	switch cfg.CurrentDB {
 	case "mongo":
 		client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoURL))
@@ -122,7 +128,7 @@ func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {
 				"status": "successfully connected to mongodb database.",
 			}).Info("mongodb repository info.")
 		}
-		return mongodb.RepositoryMongo{DB: client}, err
+		return repository.NewRepositoryMongo(client), err
 	case "postgres":
 		conn, err := pgxpool.Connect(context.Background(), cfg.PostgresURL)
 		if err != nil {
@@ -135,7 +141,7 @@ func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {
 				"status": "successfully connected to postgres database.",
 			}).Info("postgres repository info.")
 		}
-		return postgres.RepositoryPostgres{DB: conn}, err
+		return repository.NewRepositoryPostgres(conn), err
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -144,4 +150,33 @@ func CreateDBConnection(cfg *config.Config) (repository.Repository, error) {
 	}).Info("repository info")
 
 	return nil, nil
+}
+
+func redisConnection(cfg config.Config) *redis.Client {
+	opt, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"status":  "error while parsing connection URL for redis",
+			"err":     err,
+			"options": opt,
+		}).Fatal("redis repository info.")
+		return nil
+	}
+	logrus.Infof("")
+	redisClient := redis.NewClient(opt)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"status": "error while connection to redis",
+			"err":    err,
+		}).Fatal("redis repository info.")
+		return nil
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"status": "successfully connected to redis",
+	}).Info("redis repository info.")
+
+	return redisClient
 }

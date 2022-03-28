@@ -1,21 +1,30 @@
-package postgres
+package repository
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
+// CatRepository type represents postgres object cat structure and behavior
+type CatRepository struct {
+	DB *pgxpool.Pool
+}
+
+func NewCatRepository(DB *pgxpool.Pool) *CatRepository {
+	return &CatRepository{
+		DB: DB,
+	}
+}
+
 // Create method saves object Cat into postgres database.
-func (r RepositoryPostgres) Create(ctx context.Context, input *model.CreateCat) (string, error) {
-	id := uuid.New().String()
+func (r CatRepository) Create(ctx context.Context, input *model.Cat) error {
 	logrus.WithFields(logrus.Fields{
-		"id":         id,
+		"id":         input.ID,
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
 		"Vaccinated": input.Vaccinated,
@@ -23,16 +32,16 @@ func (r RepositoryPostgres) Create(ctx context.Context, input *model.CreateCat) 
 
 	insertCatQuery := "INSERT INTO cats(id, name, date_birth, vaccinated) VALUES ($1, $2, $3, $4)"
 
-	if _, err := r.DB.Exec(ctx, insertCatQuery, id, input.Name, input.DateBirth, input.Vaccinated); err != nil {
+	if _, err := r.DB.Exec(ctx, insertCatQuery, input.ID, input.Name, input.DateBirth, input.Vaccinated); err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while inserting new row in table cats")
-		return "", fmt.Errorf("postgres repository: can't create cat - %w", err)
+		return fmt.Errorf("postgres repository: can't create cat - %w", err)
 	}
-	return id, nil
+	return nil
 }
 
 // Get method returns object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, error) {
+func (r CatRepository) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Info("postgres repository: get cat")
@@ -53,7 +62,7 @@ func (r RepositoryPostgres) Get(ctx context.Context, id string) (*model.Cat, err
 
 // Update method updates object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.UpdateCat) error {
+func (r CatRepository) Update(ctx context.Context, id string, input *model.UpdateCat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
@@ -97,7 +106,7 @@ func (r RepositoryPostgres) Update(ctx context.Context, id string, input *model.
 
 // Delete method deletes object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) Delete(ctx context.Context, id string) error {
+func (r CatRepository) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("repository: delete cat")
@@ -113,7 +122,7 @@ func (r RepositoryPostgres) Delete(ctx context.Context, id string) error {
 
 // UploadImage method updates image path object Cat from postgres database
 // with selection by id.
-func (r RepositoryPostgres) UploadImage(ctx context.Context, id, path string) error {
+func (r CatRepository) UploadImage(ctx context.Context, id, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("postgres repository: update cats image path")

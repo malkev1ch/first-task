@@ -2,15 +2,14 @@ package handler
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/labstack/echo"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 )
 
 var imageTypes = map[string]interface{}{
@@ -40,7 +39,11 @@ func (h *Handler) CreateCat(ctx echo.Context) error {
 		})
 	}
 
-	id, err := h.Services.Create(ctx.Request().Context(), &input)
+	id, err := h.Services.Create(ctx.Request().Context(), &model.Cat{
+		Name:       input.Name,
+		DateBirth:  input.DateBirth,
+		Vaccinated: input.Vaccinated,
+	})
 	if err != nil {
 		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{

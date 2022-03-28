@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	accessTokenExTime  = 15
+	accessTokenExTime  = 120
 	refreshTokenExTime = 720
 )
 
@@ -68,7 +68,7 @@ func (s Service) SignUp(ctx context.Context, input *SignUpInput) (*model.Tokens,
 		return nil, err
 	}
 
-	err = s.repo.CreateUser(ctx, &repository.CreateUserInput{
+	err = s.repo.Auth.CreateUser(ctx, &repository.CreateUserInput{
 		ID: id, UserName: input.UserName, Email: input.Email,
 		Password: input.Password, RefreshToken: tokens.RefreshToken,
 	})
@@ -81,7 +81,7 @@ func (s Service) SignUp(ctx context.Context, input *SignUpInput) (*model.Tokens,
 
 // SignIn Generates tokens for created user.
 func (s Service) SignIn(ctx context.Context, input *SignInInput) (*model.Tokens, error) {
-	id, hash, err := s.repo.GetUserHashedPassword(ctx, input.Email)
+	id, hash, err := s.repo.Auth.GetUserHashedPassword(ctx, input.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (s Service) SignIn(ctx context.Context, input *SignInInput) (*model.Tokens,
 		return nil, err
 	}
 
-	if err := s.repo.UpdateUserRefreshToken(ctx, id, tokens.RefreshToken); err != nil {
+	if err := s.repo.Auth.UpdateUserRefreshToken(ctx, id, tokens.RefreshToken); err != nil {
 		return nil, err
 	}
 
@@ -119,7 +119,6 @@ func (s Service) RefreshToken(ctx context.Context, refreshTokenString string) (*
 	claims := refreshToken.Claims.(jwt.MapClaims)
 	userID := claims["jti"]
 	email := claims["email"]
-	fmt.Println(userID, email)
 	if userID == "" || email == "" {
 		logrus.Error(err, "service: error while parsing claims", userID, email)
 		return nil, fmt.Errorf("service: error while parsing claims")
@@ -139,7 +138,7 @@ func (s Service) RefreshToken(ctx context.Context, refreshTokenString string) (*
 		return nil, err
 	}
 
-	if err := s.repo.UpdateUserRefreshToken(ctx, fmt.Sprintf("%v", userID), tokens.RefreshToken); err != nil {
+	if err := s.repo.Auth.UpdateUserRefreshToken(ctx, fmt.Sprintf("%v", userID), tokens.RefreshToken); err != nil {
 		return nil, err
 	}
 

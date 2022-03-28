@@ -19,8 +19,23 @@ services:
     networks:
       - application
 
+  redis:
+    image: redis:7.0-rc2
+    container_name: first-task-redis
+    ports:
+    - "6381:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - application
+
 #  mongodb:
 #    image: mongo:5.0
+#    container_name: first-task-mongo
 #    ports:
 #      - "27018:27017"
 #    env_file:
@@ -48,6 +63,8 @@ services:
       - "/home/andreimalkevich/first-task/Data/:/Data/"
     depends_on:
       postgresdb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 #      mongodb:
 #        condition: service_healthy

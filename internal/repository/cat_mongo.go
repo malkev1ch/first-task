@@ -1,17 +1,28 @@
-package mongodb
+package repository
 
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// CatRepositoryMongo type represents mongo object cat structure and behavior
+type CatRepositoryMongo struct {
+	DB *mongo.Client
+}
+
+func NewCatRepositoryMongo(DB *mongo.Client) *CatRepositoryMongo {
+	return &CatRepositoryMongo{
+		DB: DB,
+	}
+}
+
 // Create method saves object Cat into mongo database.
-func (r RepositoryMongo) Create(ctx context.Context, input *model.CreateCat) (string, error) {
+func (r CatRepositoryMongo) Create(ctx context.Context, input *model.Cat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
@@ -19,25 +30,23 @@ func (r RepositoryMongo) Create(ctx context.Context, input *model.CreateCat) (st
 	}).Debugf("mongo repository: create cat")
 	col := r.DB.Database("mongo_database").Collection("cats")
 
-	id := uuid.New().String()
-
 	_, err := col.InsertOne(ctx, bson.D{
-		{Key: "_id", Value: id},
+		{Key: "_id", Value: input.ID},
 		{Key: "name", Value: input.Name},
 		{Key: "dateBirth", Value: input.DateBirth},
 		{Key: "vaccinated", Value: input.Vaccinated},
 	})
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while inserting new row in table cats")
-		return "", fmt.Errorf("mongo repository: can't create cat - %w", err)
+		return fmt.Errorf("mongo repository: can't create cat - %w", err)
 	}
 
-	return id, nil
+	return nil
 }
 
 // Get method returns object Cat from mongo database
 // with selection by id.
-func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error) {
+func (r CatRepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("mongo repository: get cat")
@@ -54,7 +63,7 @@ func (r RepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, error)
 
 // Update method updates object Cat from mongo database
 // with selection by id.
-func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.UpdateCat) error {
+func (r CatRepositoryMongo) Update(ctx context.Context, id string, input *model.UpdateCat) error {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
@@ -79,7 +88,7 @@ func (r RepositoryMongo) Update(ctx context.Context, id string, input *model.Upd
 
 // Delete method deletes object Cat from mongo database
 // with selection by id.
-func (r RepositoryMongo) Delete(ctx context.Context, id string) error {
+func (r CatRepositoryMongo) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("mongo repository: delete cat")
@@ -94,7 +103,7 @@ func (r RepositoryMongo) Delete(ctx context.Context, id string) error {
 
 // UploadImage method updates image path object Cat from mongo database
 // with selection by id.
-func (r RepositoryMongo) UploadImage(ctx context.Context, id, path string) error {
+func (r CatRepositoryMongo) UploadImage(ctx context.Context, id, path string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("mongo repository: update cats image path")

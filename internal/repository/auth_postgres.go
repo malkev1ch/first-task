@@ -1,15 +1,26 @@
-package postgres
+package repository
 
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v4/pgxpool"
 
-	"github.com/malkev1ch/first-task/internal/repository"
 	"github.com/sirupsen/logrus"
 )
 
+// AuthRepository type represents postgres behavior for authentication
+type AuthRepository struct {
+	DB *pgxpool.Pool
+}
+
+func NewAuthRepository(DB *pgxpool.Pool) *AuthRepository {
+	return &AuthRepository{
+		DB: DB,
+	}
+}
+
 // CreateUser method create user in postgres database.
-func (r RepositoryPostgres) CreateUser(ctx context.Context, input *repository.CreateUserInput) error {
+func (r AuthRepository) CreateUser(ctx context.Context, input *CreateUserInput) error {
 	logrus.WithFields(logrus.Fields{
 		"ID":           input.ID,
 		"userName":     input.UserName,
@@ -27,7 +38,7 @@ func (r RepositoryPostgres) CreateUser(ctx context.Context, input *repository.Cr
 }
 
 // GetUserHashedPassword method returns user id with hashed password from postgres database.
-func (r RepositoryPostgres) GetUserHashedPassword(ctx context.Context, email string) (string, string, error) {
+func (r AuthRepository) GetUserHashedPassword(ctx context.Context, email string) (string, string, error) {
 	logrus.WithFields(logrus.Fields{
 		"email": email,
 	}).Info("postgres repository: get user id and hashed password")
@@ -41,7 +52,7 @@ func (r RepositoryPostgres) GetUserHashedPassword(ctx context.Context, email str
 }
 
 // GetUserRefreshToken method returns users stored refresh token.
-func (r RepositoryPostgres) GetUserRefreshToken(ctx context.Context, id string) (string, error) {
+func (r AuthRepository) GetUserRefreshToken(ctx context.Context, id string) (string, error) {
 	logrus.WithFields(logrus.Fields{
 		"id": id,
 	}).Info("postgres repository: get user refresh token by his id")
@@ -55,7 +66,7 @@ func (r RepositoryPostgres) GetUserRefreshToken(ctx context.Context, id string) 
 }
 
 // UpdateUserRefreshToken method updates user refresh token.
-func (r RepositoryPostgres) UpdateUserRefreshToken(ctx context.Context, id, refreshToken string) error {
+func (r AuthRepository) UpdateUserRefreshToken(ctx context.Context, id, refreshToken string) error {
 	logrus.WithFields(logrus.Fields{
 		"id":           id,
 		"refreshToken": refreshToken,
