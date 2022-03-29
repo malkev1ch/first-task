@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"

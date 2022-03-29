@@ -4,29 +4,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"sync"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/malkev1ch/first-task/internal/config"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
-	"strconv"
-	"sync"
 )
 
-// CatStreamCache type represents cache object structure and behavior
+// CatStreamCache type represents cache object structure and behavior.
 type CatStreamCache struct {
 	cats        map[string]*model.Cat
 	redisClient *redis.Client
 	streamName  string
 	workersNum  int
 	group       string
-	mutex       sync.Mutex
+	mutex       sync.RWMutex
 }
 
 func NewCatStreamCache(cfg *config.Config, redisClient *redis.Client) *CatStreamCache {
 	CatStreamCache := &CatStreamCache{
 		redisClient: redisClient,
 		cats:        make(map[string]*model.Cat),
-		mutex:       sync.Mutex{},
+		mutex:       sync.RWMutex{},
 		streamName:  cfg.CatsStreamName,
 		workersNum:  cfg.CacheWorkersNum,
 		group:       cfg.CatsStreamGroupName,
@@ -35,15 +36,15 @@ func NewCatStreamCache(cfg *config.Config, redisClient *redis.Client) *CatStream
 	return CatStreamCache
 }
 
-// Get method return cat instance from cache
+// Get method return cat instance from cache.
 func (cache *CatStreamCache) Get(ctx context.Context, id string) (*model.Cat, bool) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
 	cat, found := cache.cats[id]
 	return cat, found
 }
 
-//Set method send message to redis stream for saving cat
+// Set method send message to redis stream for saving cat.
 func (cache *CatStreamCache) Set(ctx context.Context, input *model.Cat) error {
 	catJSON, err := json.Marshal(input)
 	if err != nil {
@@ -66,7 +67,7 @@ func (cache *CatStreamCache) Set(ctx context.Context, input *model.Cat) error {
 	return nil
 }
 
-// Update method send message to redis stream for updating cat
+// Update method send message to redis stream for updating cat.
 func (cache *CatStreamCache) Update(ctx context.Context, input *model.Cat) error {
 	catJSON, err := json.Marshal(input)
 	if err != nil {
@@ -89,7 +90,7 @@ func (cache *CatStreamCache) Update(ctx context.Context, input *model.Cat) error
 	return nil
 }
 
-// Delete method removes cats from cache
+// Delete method removes cats from cache.
 func (cache *CatStreamCache) Delete(ctx context.Context, id string) error {
 	catJSON, err := json.Marshal(&model.Cat{ID: id})
 	if err != nil {
@@ -118,16 +119,15 @@ func (cache *CatStreamCache) StartWorkers(ctx context.Context) {
 	}
 
 	for i := 0; i < cache.workersNum; i++ {
-		go func() {
+		go func(workerID int) {
 			for {
 				result, err := cache.redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
 					Group:    cache.group,
-					Consumer: "worker-" + strconv.Itoa(i),
+					Consumer: "worker-" + strconv.Itoa(workerID),
 					Streams:  []string{cache.streamName, ">"},
 					Count:    1,
 					Block:    0,
 				}).Result()
-
 				if err != nil {
 					logrus.Errorf("redis: reading stream message failed- %e", err)
 				}
@@ -158,8 +158,7 @@ func (cache *CatStreamCache) StartWorkers(ctx context.Context) {
 						logrus.Errorf("redis: acknowledgement stream message failed- %e", err)
 					}
 				}
-
 			}
-		}()
+		}(i)
 	}
 }
