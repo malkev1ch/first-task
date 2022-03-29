@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/malkev1ch/first-task/internal/model"
@@ -10,14 +11,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// CatRepositoryMongo type represents mongo object cat structure and behavior
+// CatRepositoryMongo type represents mongo object cat structure and behavior.
 type CatRepositoryMongo struct {
 	DB *mongo.Client
 }
 
-func NewCatRepositoryMongo(DB *mongo.Client) *CatRepositoryMongo {
+func NewCatRepositoryMongo(db *mongo.Client) *CatRepositoryMongo {
 	return &CatRepositoryMongo{
-		DB: DB,
+		DB: db,
 	}
 }
 
@@ -52,7 +53,6 @@ func (r CatRepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, err
 	}).Debugf("mongo repository: get cat")
 	col := r.DB.Database("mongo_database").Collection("cats")
 	var cat model.Cat
-
 	err := col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&cat)
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while selecting row from table cats")
@@ -63,7 +63,7 @@ func (r CatRepositoryMongo) Get(ctx context.Context, id string) (*model.Cat, err
 
 // Update method updates object Cat from mongo database
 // with selection by id.
-func (r CatRepositoryMongo) Update(ctx context.Context, id string, input *model.UpdateCat) error {
+func (r CatRepositoryMongo) Update(ctx context.Context, id string, input *model.UpdateCat) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
@@ -81,9 +81,15 @@ func (r CatRepositoryMongo) Update(ctx context.Context, id string, input *model.
 	})
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while updating row from table cats")
-		return fmt.Errorf("mongo repository: can't update cat - %w", err)
+		return nil, fmt.Errorf("mongo repository: can't update cat - %w", err)
 	}
-	return nil
+	var cat model.Cat
+	if err := col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&cat); err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while selecting row from table cats")
+		return nil, fmt.Errorf("mongo repository: can't get cat - %w", err)
+	}
+
+	return &cat, nil
 }
 
 // Delete method deletes object Cat from mongo database
@@ -103,7 +109,7 @@ func (r CatRepositoryMongo) Delete(ctx context.Context, id string) error {
 
 // UploadImage method updates image path object Cat from mongo database
 // with selection by id.
-func (r CatRepositoryMongo) UploadImage(ctx context.Context, id, path string) error {
+func (r CatRepositoryMongo) UploadImage(ctx context.Context, id string, path string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
 	}).Debugf("mongo repository: update cats image path")
@@ -115,7 +121,13 @@ func (r CatRepositoryMongo) UploadImage(ctx context.Context, id, path string) er
 	})
 	if err != nil {
 		logrus.Error(err, "mongo repository: Error occurred while updating image path table cats")
-		return fmt.Errorf("mongo repository: can't update cats image path - %w", err)
+		return nil, fmt.Errorf("mongo repository: can't update cats image path - %w", err)
 	}
-	return nil
+	var cat model.Cat
+	if err := col.FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&cat); err != nil {
+		logrus.Error(err, "mongo repository: Error occurred while selecting row from table cats")
+		return nil, fmt.Errorf("mongo repository: can't get cat - %w", err)
+	}
+
+	return &cat, nil
 }

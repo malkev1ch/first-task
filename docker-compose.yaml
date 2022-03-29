@@ -19,11 +19,14 @@ services:
     networks:
       - application
 
-  redis:
-    image: redis:7.0-rc2
+  redisdb:
+    image: redis:7.0-rc2-alpine
     container_name: first-task-redis
     ports:
     - "6381:6379"
+    command: redis-server --save 60 1 --requirepass MDNcVb924a --loglevel warning
+    volumes:
+      - cache:/data
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 5s
@@ -33,24 +36,26 @@ services:
     networks:
       - application
 
-#  mongodb:
-#    image: mongo:5.0
-#    container_name: first-task-mongo
-#    ports:
-#      - "27018:27017"
-#    env_file:
-#      - env/mongo.env
-#    volumes:
-#      - "./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro"
-#      - dbdata:/data/db
-#    healthcheck:
-#      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
-#      interval: 10s
-#      timeout: 10s
-#      retries: 5
-#      start_period: 40s
-#    networks:
-#      - application
+  mongodb:
+    image: mongo:5.0
+    container_name: first-task-mongo
+    ports:
+      - "27018:27017"
+    env_file:
+      - env/mongo.env
+    volumes:
+      - "./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro"
+      - dbdata:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - application
+    profiles:
+      - donotstart
 
   golang:
     build: .
@@ -64,7 +69,7 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
-      redis:
+      redisdb:
         condition: service_healthy
 #      mongodb:
 #        condition: service_healthy
@@ -79,3 +84,4 @@ networks:
 volumes:
   database:
   dbdata:
+  cache:

@@ -160,7 +160,7 @@ func (s Service) checkPasswordHash(password string, hash string) bool {
 
 // generateToken generates new token pair and with putting email inside payload.
 func (s Service) generateToken(email string, id string) (*model.Tokens, error) {
-	expirationTimeAT := time.Now().Add(accessTokenExTime * time.Minute)
+	expirationTimeAT := time.Now().Add(accessTokenExTime * time.Hour)
 	expirationTimeRT := time.Now().Add(refreshTokenExTime * time.Hour)
 
 	accessTokensClaims := &JwtCustomClaims{

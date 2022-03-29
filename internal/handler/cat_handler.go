@@ -2,19 +2,21 @@ package handler
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/labstack/echo"
-	"github.com/malkev1ch/first-task/internal/model"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/google/uuid"
+	"github.com/labstack/echo"
+	"github.com/malkev1ch/first-task/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
 var imageTypes = map[string]interface{}{
 	"image/jpeg": nil,
 	"image/png":  nil,
+	"image/webp": nil,
 }
 
 //	swagger:route POST /cats cats CreateCat
@@ -29,6 +31,7 @@ var imageTypes = map[string]interface{}{
 //	responses:
 //	 201: okResponse
 //	 400: badRequestError
+//	 401: unauthorizedError
 //	 500: internalServerError
 func (h *Handler) CreateCat(ctx echo.Context) error {
 	var input model.CreateCat
@@ -67,6 +70,7 @@ func (h *Handler) CreateCat(ctx echo.Context) error {
 //
 //	responses:
 //	 200: getCatResponse
+//	 401: unauthorizedError
 //	 500: internalServerError
 func (h *Handler) GetCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -91,8 +95,9 @@ func (h *Handler) GetCat(ctx echo.Context) error {
 //	 AdminAuth:
 //
 //	responses:
-//	 200: okResponse
+//	 200: updateCatResponse
 //	 400: badRequestError
+//	 401: unauthorizedError
 //	 500: internalServerError
 func (h *Handler) UpdateCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -103,16 +108,15 @@ func (h *Handler) UpdateCat(ctx echo.Context) error {
 		})
 	}
 
-	if err := h.Services.Update(ctx.Request().Context(), id, &input); err != nil {
+	cat, err := h.Services.Update(ctx.Request().Context(), id, &input)
+	if err != nil {
 		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't update cat", Error: err.Error(),
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, OKResponse{
-		Message: "OK",
-	})
+	return ctx.JSON(http.StatusOK, *cat)
 }
 
 //	swagger:route DELETE /cats/{uuid} cats DeleteCat
@@ -124,6 +128,7 @@ func (h *Handler) UpdateCat(ctx echo.Context) error {
 //
 //	Responses:
 //	 200: okResponse
+//	 401: unauthorizedError
 //	 500: internalServerError
 func (h *Handler) DeleteCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -146,9 +151,13 @@ func (h *Handler) DeleteCat(ctx echo.Context) error {
 // 	consumes:
 //   - multipart/form-data
 //
+//	Security:
+//	 AdminAuth:
+//
 // 	Responses:
 // 	 200: okResponse
 // 	 400: badRequestError
+//	 401: unauthorizedError
 // 	 500: internalServerError
 func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -227,6 +236,21 @@ func getFileExtension(filename string) string {
 	return parts[len(parts)-1]
 }
 
+//	swagger:route GET /cats/{uuid}/image cats GetCatImage
+//
+//	Get cats image.
+//
+//	Produces:
+//	 - image/jpeg
+//	 - image/png
+//	 - image/webp
+//
+//	Security:
+//	 AdminAuth:
+//
+// 	Responses:
+// 	 200: okResponse
+// 	 500: internalServerError
 func (h *Handler) GetCatImage(ctx echo.Context) error {
 	id := ctx.Param("uuid")
 	cat, err := h.Services.Get(ctx.Request().Context(), id)

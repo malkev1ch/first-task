@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -19,9 +20,9 @@ type CreateUserInput struct {
 type Cat interface {
 	Create(ctx context.Context, cat *model.Cat) error
 	Get(ctx context.Context, id string) (*model.Cat, error)
-	Update(ctx context.Context, id string, input *model.UpdateCat) error
+	Update(ctx context.Context, id string, input *model.UpdateCat) (*model.Cat, error)
 	Delete(ctx context.Context, id string) error
-	UploadImage(ctx context.Context, id string, path string) error
+	UploadImage(ctx context.Context, id string, path string) (*model.Cat, error)
 }
 
 type Auth interface {
@@ -36,16 +37,16 @@ type Repository struct {
 	Auth
 }
 
-func NewRepositoryPostgres(DB *pgxpool.Pool) *Repository {
+func NewRepositoryPostgres(db *pgxpool.Pool) *Repository {
 	return &Repository{
-		Cat:  NewCatRepository(DB),
-		Auth: NewAuthRepository(DB),
+		Cat:  NewCatRepository(db),
+		Auth: NewAuthRepository(db),
 	}
 }
 
-func NewRepositoryMongo(DB *mongo.Client) *Repository {
+func NewRepositoryMongo(db *mongo.Client) *Repository {
 	return &Repository{
-		Cat:  NewCatRepositoryMongo(DB),
-		Auth: NewAuthRepositoryMongo(DB),
+		Cat:  NewCatRepositoryMongo(db),
+		Auth: NewAuthRepositoryMongo(db),
 	}
 }

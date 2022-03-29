@@ -2,17 +2,18 @@ package repository
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// AuthRepositoryMongo type represents postgres behavior for authentication
+// AuthRepositoryMongo type represents postgres behavior for authentication.
 type AuthRepositoryMongo struct {
 	DB *mongo.Client
 }
 
-func NewAuthRepositoryMongo(DB *mongo.Client) *AuthRepositoryMongo {
+func NewAuthRepositoryMongo(db *mongo.Client) *AuthRepositoryMongo {
 	return &AuthRepositoryMongo{
-		DB: DB,
+		DB: db,
 	}
 }
 

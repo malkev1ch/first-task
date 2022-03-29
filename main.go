@@ -1,35 +1,36 @@
-//	Cats storage API
+// Cats storage API
 //
-//	Documentation for Cats storage API
+// Documentation for Cats storage API
 //
-//	Schemes: http
-//	Host: localhost:8080
-//	BasePath: /
-//	Version: 1.0.0
+// Schemes: http
+// Host: localhost:8080
+// BasePath: /
+// Version: 1.0.0
 //
-//	Consumes:
-//	 - application/json
+// Consumes:
+//  - application/json
 //
-//	Produces:
-//	 - application/json
+// Produces:
+//  - application/json
 //
-//     SecurityDefinitions:
-//     AdminAuth:
-//          type: apiKey
-//          name: Authorization
-//          in: header
+// SecurityDefinitions:
+//  AdminAuth:
+//   type: apiKey
+//   name: Authorization
+//   in: header
 //
-//	swagger:meta
+// swagger:meta
 package main
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
-	"github.com/malkev1ch/first-task/internal/rediscache"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/malkev1ch/first-task/internal/rediscache"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -49,7 +50,7 @@ func main() {
 	if err := env.Parse(&cfg); err != nil {
 		logrus.Fatal(err, "wrong config variables")
 	}
-
+	logrus.Infof("Parsed config - %+v\n", cfg)
 	repo, err := CreateDBConnection(&cfg)
 	if err != nil {
 		logrus.Fatal(err, "err initializing DB")
@@ -63,14 +64,14 @@ func main() {
 		}
 	}()
 
-	cache := rediscache.NewCache(redisClient)
+	cache := rediscache.NewStreamCache(&cfg, redisClient)
 	services := service.NewService(repo, cache)
 	handlers := handler.NewHandler(services, &cfg)
 	router := echo.New()
 	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
-		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.POST, echo.DELETE},
+		AllowHeaders: []string{"*"},
+		AllowMethods: []string{"*"},
 	}))
 
 	auth := router.Group("/auth")
@@ -162,7 +163,6 @@ func redisConnection(cfg config.Config) *redis.Client {
 		}).Fatal("redis repository info.")
 		return nil
 	}
-	logrus.Infof("")
 	redisClient := redis.NewClient(opt)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()

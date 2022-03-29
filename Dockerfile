@@ -6,7 +6,7 @@ WORKDIR /github.com/malkev1ch/first-task/
 RUN go mod download
 RUN go build -o ./bin/app main.go
 
-FROM alpine:latest
+FROM alpine:3.15.3
 
 WORKDIR /root/
 

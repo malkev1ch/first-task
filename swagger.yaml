@@ -156,6 +156,16 @@ definitions:
         x-go-name: RefreshToken
     type: object
     x-go-package: github.com/malkev1ch/first-task/internal/model
+  UnauthorizedErrorBody:
+    properties:
+      message:
+        description: a human readable version of the error
+        type: string
+        x-go-name: Message
+    required:
+    - message
+    type: object
+    x-go-package: github.com/malkev1ch/first-task/doc
   UpdateCat:
     description: UpdateCat is the struct for update a cat
     properties:
@@ -266,6 +276,8 @@ paths:
           $ref: '#/responses/okResponse'
         "400":
           $ref: '#/responses/badRequestError'
+        "401":
+          $ref: '#/responses/unauthorizedError'
         "500":
           $ref: '#/responses/internalServerError'
       security:
@@ -285,6 +297,8 @@ paths:
       responses:
         "200":
           $ref: '#/responses/okResponse'
+        "401":
+          $ref: '#/responses/unauthorizedError'
         "500":
           $ref: '#/responses/internalServerError'
       security:
@@ -304,6 +318,8 @@ paths:
       responses:
         "200":
           $ref: '#/responses/getCatResponse'
+        "401":
+          $ref: '#/responses/unauthorizedError'
         "500":
           $ref: '#/responses/internalServerError'
       security:
@@ -322,9 +338,11 @@ paths:
         x-go-name: CatID
       responses:
         "200":
-          $ref: '#/responses/okResponse'
+          $ref: '#/responses/updateCatResponse'
         "400":
           $ref: '#/responses/badRequestError'
+        "401":
+          $ref: '#/responses/unauthorizedError'
         "500":
           $ref: '#/responses/internalServerError'
       security:
@@ -333,6 +351,28 @@ paths:
       tags:
       - cats
   /cats/{uuid}/image:
+    get:
+      operationId: GetCatImage
+      parameters:
+      - in: path
+        name: uuid
+        required: true
+        type: string
+        x-go-name: CatID
+      produces:
+      - image/jpeg
+      - image/png
+      - image/webp
+      responses:
+        "200":
+          $ref: '#/responses/okResponse'
+        "500":
+          $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
+      summary: Get cats image.
+      tags:
+      - cats
     post:
       consumes:
       - multipart/form-data
@@ -353,8 +393,12 @@ paths:
           $ref: '#/responses/okResponse'
         "400":
           $ref: '#/responses/badRequestError'
+        "401":
+          $ref: '#/responses/unauthorizedError'
         "500":
           $ref: '#/responses/internalServerError'
+      security:
+      - AdminAuth: []
       summary: Set or update cats image.
       tags:
       - cats
@@ -402,6 +446,15 @@ responses:
     description: A SignUpResponse returns a couple of token with user id.
     schema:
       $ref: '#/definitions/SignUpResponseBody'
+  unauthorizedError:
+    description: A UnauthorizedError is the default error message that is generated
+      by echo JWT middleware.
+    schema:
+      $ref: '#/definitions/UnauthorizedErrorBody'
+  updateCatResponse:
+    description: ""
+    schema:
+      $ref: '#/definitions/Cat'
 schemes:
 - http
 securityDefinitions:

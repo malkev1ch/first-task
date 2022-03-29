@@ -3,19 +3,20 @@ package repository
 import (
 	"context"
 	"fmt"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"github.com/sirupsen/logrus"
 )
 
-// AuthRepository type represents postgres behavior for authentication
+// AuthRepository type represents postgres behavior for authentication.
 type AuthRepository struct {
 	DB *pgxpool.Pool
 }
 
-func NewAuthRepository(DB *pgxpool.Pool) *AuthRepository {
+func NewAuthRepository(db *pgxpool.Pool) *AuthRepository {
 	return &AuthRepository{
-		DB: DB,
+		DB: db,
 	}
 }
 

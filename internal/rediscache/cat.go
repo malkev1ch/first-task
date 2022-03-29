@@ -2,62 +2,74 @@
 package rediscache
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"fmt"
-	"github.com/malkev1ch/first-task/internal/model"
-	"github.com/sirupsen/logrus"
-	"sync"
+	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/malkev1ch/first-task/internal/model"
+	"github.com/sirupsen/logrus"
 )
 
-// CatCache type represents redis object cat structure and behavior
+// CatCache type represents redis object cat structure and behavior.
 type CatCache struct {
-	redisClient *redis.Client
-	mutex       sync.Mutex
+	redisClient      *redis.Client
+	expirationPeriod time.Duration
 }
 
-func NewCatCache(redisClient *redis.Client) *CatCache {
+func NewCatCache(redisClient *redis.Client, expirationPeriod time.Duration) *CatCache {
 	return &CatCache{
-		redisClient: redisClient,
-		mutex:       sync.Mutex{},
+		redisClient:      redisClient,
+		expirationPeriod: expirationPeriod,
 	}
 }
 
-//Save method saves cat
-func (cache *CatCache) Save(ctx context.Context, input *model.Cat) error {
-	inputJSON, err := json.Marshal(input)
-	if err != nil {
-		logrus.Error(err, "service: error occurred while marshaling data")
-		return fmt.Errorf("service: error occurred while marshaling data - %w", err)
+// Set method saves cat in redis.
+func (cache *CatCache) Set(ctx context.Context, input *model.Cat) error {
+	var b bytes.Buffer
+
+	if err := gob.NewEncoder(&b).Encode(input); err != nil {
+		logrus.Error(err, "redis: error occurred encoding cat")
+		return fmt.Errorf("redis: error occurred encoding cat - %w", err)
 	}
-	if err := cache.redisClient.Set(ctx, input.ID, inputJSON, 0).Err(); err != nil {
-		logrus.Error(err, "service: error occurred while saving cat in cache")
-		return fmt.Errorf("service: error occurred while aving cat in cache - %w", err)
+	if err := cache.redisClient.Set(ctx, input.ID, b.Bytes(), cache.expirationPeriod).Err(); err != nil {
+		logrus.Error(err, "redis: error occurred while saving cat in cache")
+		return fmt.Errorf("redis: error occurred while saving cat in cache - %w", err)
 	}
+
+	logrus.Infof("redis: saved object cat %s in redis", input.ID)
 	return nil
 }
 
-// Get method return cat instance from redis
+// Get method return cat instance from redis.
 func (cache *CatCache) Get(ctx context.Context, id string) (*model.Cat, bool) {
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
-	val, err := cache.redisClient.Get(ctx, id).Result()
+	val := cache.redisClient.Get(ctx, id)
+
+	valBytes, err := val.Bytes()
 	if err != nil {
-		fmt.Println(err)
+		logrus.Infof("redis: key %s doesn't exists - %e", id, err)
+		return nil, false
 	}
 
-	fmt.Println(val)
-	return nil, true
+	b := bytes.NewReader(valBytes)
+
+	var cat model.Cat
+
+	if err := gob.NewDecoder(b).Decode(&cat); err != nil {
+		logrus.Errorf("redis: error occurred while decoding cat %s - %e", id, err)
+		return nil, false
+	}
+
+	logrus.Infof("redis: returned cat %s from redis", id)
+	return &cat, true
 }
 
-// Update method updates cat
-func (cache *CatCache) Update() error {
+func (cache *CatCache) Update(ctx context.Context, input *model.Cat) error {
 	return nil
 }
 
-// Delete method removes cat
-func (cache *CatCache) Delete() error {
+func (cache *CatCache) Delete(ctx context.Context, id string) error {
 	return nil
 }

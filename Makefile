@@ -7,6 +7,9 @@ build:
 lint:
 	golangci-lint run
 
+lint-fix:
+	golangci-lint run --fix
+
 swagger:
 	swagger generate spec --scan-models --output=./swagger.yaml
 

@@ -4,20 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
-// CatRepository type represents postgres object cat structure and behavior
+// CatRepository type represents postgres object cat structure and behavior.
 type CatRepository struct {
 	DB *pgxpool.Pool
 }
 
-func NewCatRepository(DB *pgxpool.Pool) *CatRepository {
+func NewCatRepository(db *pgxpool.Pool) *CatRepository {
 	return &CatRepository{
-		DB: DB,
+		DB: db,
 	}
 }
 
@@ -28,7 +29,7 @@ func (r CatRepository) Create(ctx context.Context, input *model.Cat) error {
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
 		"Vaccinated": input.Vaccinated,
-	}).Debugf("postgres repository: create cat")
+	}).Info("postgres repository: create cat")
 
 	insertCatQuery := "INSERT INTO cats(id, name, date_birth, vaccinated) VALUES ($1, $2, $3, $4)"
 
@@ -56,18 +57,17 @@ func (r CatRepository) Get(ctx context.Context, id string) (*model.Cat, error) {
 	if imageNull.Valid {
 		cat.ImagePath = imageNull.String
 	}
-	logrus.Infof("%+v\n", cat)
 	return &cat, nil
 }
 
 // Update method updates object Cat from postgres database
-// with selection by id.
-func (r CatRepository) Update(ctx context.Context, id string, input *model.UpdateCat) error {
+// with selection by id and returns object Cat.
+func (r CatRepository) Update(ctx context.Context, id string, input *model.UpdateCat) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"Name":       input.Name,
 		"DateBirth":  input.DateBirth,
 		"Vaccinated": input.Vaccinated,
-	}).Debugf("postgres repository: update cat")
+	}).Info("postgres repository: update cat")
 
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
@@ -92,16 +92,23 @@ func (r CatRepository) Update(ctx context.Context, id string, input *model.Updat
 	}
 
 	setQuery := strings.Join(setValues, ", ")
-	updateCatQuery := fmt.Sprintf("UPDATE cats SET %s WHERE id = $%d", setQuery, argID)
+	updateCatQuery := fmt.Sprintf("UPDATE cats SET %s WHERE id = $%d RETURNING id, name, date_birth,"+
+		" vaccinated, image_path;", setQuery, argID)
 	args = append(args, id)
 
-	_, err := r.DB.Exec(ctx, updateCatQuery, args...)
-	if err != nil {
+	var cat model.Cat
+	imageNull := sql.NullString{}
+
+	if err := r.DB.QueryRow(ctx, updateCatQuery, args...).Scan(&cat.ID, &cat.Name, &cat.DateBirth, &cat.Vaccinated,
+		&imageNull); err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while updating row from table cats")
-		return fmt.Errorf("postgres repository: can't update cat - %w", err)
+		return nil, fmt.Errorf("postgres repository: can't update cat - %w", err)
+	}
+	if imageNull.Valid {
+		cat.ImagePath = imageNull.String
 	}
 
-	return nil
+	return &cat, nil
 }
 
 // Delete method deletes object Cat from postgres database
@@ -109,7 +116,7 @@ func (r CatRepository) Update(ctx context.Context, id string, input *model.Updat
 func (r CatRepository) Delete(ctx context.Context, id string) error {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
-	}).Debugf("repository: delete cat")
+	}).Info("repository: delete cat")
 	deleteCatQuery := "DELETE FROM cats WHERE id = $1"
 	_, err := r.DB.Exec(ctx, deleteCatQuery, id)
 	if err != nil {
@@ -121,17 +128,23 @@ func (r CatRepository) Delete(ctx context.Context, id string) error {
 }
 
 // UploadImage method updates image path object Cat from postgres database
-// with selection by id.
-func (r CatRepository) UploadImage(ctx context.Context, id, path string) error {
+// with selection by id and returns object Cat.
+func (r CatRepository) UploadImage(ctx context.Context, id string, path string) (*model.Cat, error) {
 	logrus.WithFields(logrus.Fields{
 		"ID": id,
-	}).Debugf("postgres repository: update cats image path")
-	UpdateImagePathCatQuery := "UPDATE cats SET image_path=$1 WHERE id = $2"
-	_, err := r.DB.Exec(ctx, UpdateImagePathCatQuery, path, id)
-	if err != nil {
+	}).Info("postgres repository: update cats image path")
+	UpdateImagePathCatQuery := "UPDATE cats SET image_path=$1 WHERE id = $2 RETURNING id, name, date_birth," +
+		" vaccinated, image_path;"
+	var cat model.Cat
+	imageNull := sql.NullString{}
+	if err := r.DB.QueryRow(ctx, UpdateImagePathCatQuery, path, id).Scan(&cat.ID, &cat.Name, &cat.DateBirth,
+		&cat.Vaccinated, &imageNull); err != nil {
 		logrus.Error(err, "postgres repository: Error occurred while updating image path table cats")
-		return fmt.Errorf("postgres repository: can't update cats image path - %w", err)
+		return nil, fmt.Errorf("postgres repository: can't update cats image path - %w", err)
+	}
+	if imageNull.Valid {
+		cat.ImagePath = imageNull.String
 	}
 
-	return nil
+	return &cat, nil
 }

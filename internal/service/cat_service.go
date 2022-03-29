@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/sirupsen/logrus"
@@ -11,10 +10,8 @@ import (
 func (s Service) Create(ctx context.Context, cat *model.Cat) (string, error) {
 	id := uuid.New().String()
 	cat.ID = id
-
-	if err := s.redis.Cat.Save(ctx, cat); err != nil {
-		logrus.Error(err, "service: error occurred while setting data in redis")
-		return "", fmt.Errorf("service: error occurred while setting data in redis - %w", err)
+	if err := s.redis.Cat.Set(ctx, cat); err != nil {
+		return "", err
 	}
 
 	if err := s.repo.Create(ctx, cat); err != nil {
@@ -24,17 +21,50 @@ func (s Service) Create(ctx context.Context, cat *model.Cat) (string, error) {
 }
 
 func (s Service) Get(ctx context.Context, id string) (*model.Cat, error) {
-	return s.repo.Cat.Get(ctx, id)
+	cat, ex := s.redis.Cat.Get(ctx, id)
+	if !ex {
+		logrus.Info("got cat from database")
+		return s.repo.Cat.Get(ctx, id)
+	}
+
+	logrus.Info("got cat from cache")
+	return cat, nil
 }
 
-func (s Service) Update(ctx context.Context, id string, input *model.UpdateCat) error {
-	return s.repo.Cat.Update(ctx, id, input)
+func (s Service) Update(ctx context.Context, id string, input *model.UpdateCat) (*model.Cat, error) {
+	cat, err := s.repo.Cat.Update(ctx, id, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.redis.Cat.Set(ctx, cat); err != nil {
+		return nil, err
+	}
+
+	return cat, nil
 }
 
 func (s Service) Delete(ctx context.Context, id string) error {
-	return s.repo.Cat.Delete(ctx, id)
+	if err := s.redis.Cat.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.repo.Cat.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s Service) UploadImage(ctx context.Context, id, path string) error {
-	return s.repo.Cat.UploadImage(ctx, id, path)
+	cat, err := s.repo.Cat.UploadImage(ctx, id, path)
+	if err != nil {
+		return err
+	}
+
+	if err := s.redis.Cat.Set(ctx, cat); err != nil {
+		return err
+	}
+
+	return nil
 }
