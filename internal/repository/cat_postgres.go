@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -34,9 +35,17 @@ func (r CatRepository) Create(ctx context.Context, input *model.Cat) error {
 	insertCatQuery := "INSERT INTO cats(id, name, date_birth, vaccinated) VALUES ($1, $2, $3, $4)"
 
 	if _, err := r.DB.Exec(ctx, insertCatQuery, input.ID, input.Name, input.DateBirth, input.Vaccinated); err != nil {
-		logrus.Error(err, "postgres repository: Error occurred while inserting new row in table cats")
-		return fmt.Errorf("postgres repository: can't create cat - %w", err)
+		switch {
+		case strings.Contains(err.Error(), "duplicate key"):
+			logrus.Error("postgres repository: cat with given UUID already exists - ", err)
+			return errors.New("cat with given UUID already exists, try to create again")
+
+		default:
+			logrus.Error("postgres repository: Error occurred while inserting new row in table cats - ", err)
+			return errors.New("can't create cat")
+		}
 	}
+
 	return nil
 }
 
@@ -51,8 +60,15 @@ func (r CatRepository) Get(ctx context.Context, id string) (*model.Cat, error) {
 	imageNull := sql.NullString{}
 	if err := r.DB.QueryRow(ctx, getCatQuery, id).Scan(&cat.ID, &cat.Name, &cat.DateBirth, &cat.Vaccinated,
 		&imageNull); err != nil {
-		logrus.Error(err, "postgres repository: Error occurred while selecting row from table cats")
-		return nil, fmt.Errorf("postgres repository: can't get cat - %w", err)
+		switch {
+		case strings.Contains(err.Error(), "no rows in result set"):
+			logrus.Error("postgres repository: cat with UUID email doesn't exist - ", err)
+			return nil, errors.New("cat with given UUID doesn't exist")
+
+		default:
+			logrus.Error("postgres repository: Error occurred while selecting row from table cats - ", err)
+			return nil, errors.New("can't get cat")
+		}
 	}
 	if imageNull.Valid {
 		cat.ImagePath = imageNull.String
@@ -101,9 +117,16 @@ func (r CatRepository) Update(ctx context.Context, id string, input *model.Updat
 
 	if err := r.DB.QueryRow(ctx, updateCatQuery, args...).Scan(&cat.ID, &cat.Name, &cat.DateBirth, &cat.Vaccinated,
 		&imageNull); err != nil {
-		logrus.Error(err, "postgres repository: Error occurred while updating row from table cats")
-		return nil, fmt.Errorf("postgres repository: can't update cat - %w", err)
+		switch {
+		case strings.Contains(err.Error(), "no rows in result set"):
+			logrus.Error("postgres repository: at with given UUID doesn't exists - ", err)
+			return nil, errors.New("cat with given UUID doesn't exists")
+		default:
+			logrus.Error("postgres repository: Error occurred while updating row from table cats - ", err)
+			return nil, errors.New("can't update cat")
+		}
 	}
+
 	if imageNull.Valid {
 		cat.ImagePath = imageNull.String
 	}
@@ -120,8 +143,8 @@ func (r CatRepository) Delete(ctx context.Context, id string) error {
 	deleteCatQuery := "DELETE FROM cats WHERE id = $1"
 	_, err := r.DB.Exec(ctx, deleteCatQuery, id)
 	if err != nil {
-		logrus.Error(err, "postgres repository: Error occurred while deleting row from table cats")
-		return fmt.Errorf("postgres repository: can't delete cat - %w", err)
+		logrus.Error("postgres repository: Error occurred while deleting row from table cats - ", err)
+		return errors.New("can't delete cat")
 	}
 
 	return nil
@@ -139,7 +162,7 @@ func (r CatRepository) UploadImage(ctx context.Context, id string, path string) 
 	imageNull := sql.NullString{}
 	if err := r.DB.QueryRow(ctx, UpdateImagePathCatQuery, path, id).Scan(&cat.ID, &cat.Name, &cat.DateBirth,
 		&cat.Vaccinated, &imageNull); err != nil {
-		logrus.Error(err, "postgres repository: Error occurred while updating image path table cats")
+		logrus.Error("postgres repository: Error occurred while updating image path table cats - ", err)
 		return nil, fmt.Errorf("postgres repository: can't update cats image path - %w", err)
 	}
 	if imageNull.Valid {

@@ -32,13 +32,21 @@ var imageTypes = map[string]interface{}{
 //	 201: okResponse
 //	 400: badRequestError
 //	 401: unauthorizedError
+//	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) CreateCat(ctx echo.Context) error {
 	var input model.CreateCat
 	if err := ctx.Bind(&input); err != nil {
-		logrus.Error(fmt.Errorf("handler: invalid content pf body - %w", err))
+		logrus.Error("handler: validation failed - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Message: "invalid path parameter", Error: err.Error(),
+			Message: "invalid content of body", Error: err.Error(),
+		})
+	}
+
+	if err := h.Validator.Validate(input); err != nil {
+		logrus.Error("handler: validation failed - ", err)
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "not enough fields in json body", Error: err.Error(),
 		})
 	}
 
@@ -48,7 +56,6 @@ func (h *Handler) CreateCat(ctx echo.Context) error {
 		Vaccinated: input.Vaccinated,
 	})
 	if err != nil {
-		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't create cat", Error: err.Error(),
 		})
@@ -76,8 +83,7 @@ func (h *Handler) GetCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
 	cat, err := h.Services.Get(ctx.Request().Context(), id)
 	if err != nil {
-		logrus.Error(err, "handler: can't get cat")
-		return echo.NewHTTPError(http.StatusInternalServerError, ErrorResponse{
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't get cat", Error: err.Error(),
 		})
 	}
@@ -98,6 +104,7 @@ func (h *Handler) GetCat(ctx echo.Context) error {
 //	 200: updateCatResponse
 //	 400: badRequestError
 //	 401: unauthorizedError
+//	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) UpdateCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -107,10 +114,15 @@ func (h *Handler) UpdateCat(ctx echo.Context) error {
 			Message: "invalid path parameter", Error: err.Error(),
 		})
 	}
+	if err := h.Validator.ValidateUpdateCat(&input); err != nil {
+		logrus.Error("handler: not enough fields in json body - ", err)
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "not enough fields in json body", Error: err.Error(),
+		})
+	}
 
 	cat, err := h.Services.Update(ctx.Request().Context(), id, &input)
 	if err != nil {
-		logrus.Error(fmt.Errorf("handler: can't create cat - %w", err))
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't update cat", Error: err.Error(),
 		})
@@ -133,7 +145,6 @@ func (h *Handler) UpdateCat(ctx echo.Context) error {
 func (h *Handler) DeleteCat(ctx echo.Context) error {
 	id := ctx.Param("uuid")
 	if err := h.Services.Delete(ctx.Request().Context(), id); err != nil {
-		logrus.Error(fmt.Errorf("handler: can't delete cat - %w", err))
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't delete cat", Error: err.Error(),
 		})
@@ -158,6 +169,7 @@ func (h *Handler) DeleteCat(ctx echo.Context) error {
 // 	 200: okResponse
 // 	 400: badRequestError
 //	 401: unauthorizedError
+//	 415: unsupportedMediaTypeError
 // 	 500: internalServerError
 func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	id := ctx.Param("uuid")
@@ -202,8 +214,8 @@ func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	// Validate File Type
 	if _, ex := imageTypes[contentType]; !ex {
 		logrus.Errorf("invalid file type")
-		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
-			Message: "image should be .jpg or .png", Error: "invalid file type",
+		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
+			Message: "image should be .jpg or .png or .webp", Error: "invalid file type",
 		})
 	}
 
@@ -215,7 +227,6 @@ func (h *Handler) UploadCatImage(ctx echo.Context) error {
 	}
 
 	if err := h.Services.UploadImage(ctx.Request().Context(), id, filename); err != nil {
-		logrus.Errorf("handler: can't update cats image path - %e", err)
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't update cats image path", Error: err.Error(),
 		})
@@ -249,8 +260,7 @@ func getFileExtension(filename string) string {
 //	 AdminAuth:
 //
 // 	Responses:
-// 	 200: okResponse
-// 	 500: internalServerError
+//	 200: okResponse
 func (h *Handler) GetCatImage(ctx echo.Context) error {
 	id := ctx.Param("uuid")
 	cat, err := h.Services.Get(ctx.Request().Context(), id)

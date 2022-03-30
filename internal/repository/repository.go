@@ -9,6 +9,8 @@ import (
 	"github.com/malkev1ch/first-task/internal/model"
 )
 
+//go:generate mockgen -source=repository.go -destination=mocks/repository_mock.go
+
 type CreateUserInput struct {
 	ID           string
 	UserName     string

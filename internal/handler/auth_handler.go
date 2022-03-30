@@ -1,9 +1,8 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
-
-	"github.com/malkev1ch/first-task/internal/service"
 
 	"github.com/labstack/echo"
 	"github.com/malkev1ch/first-task/internal/model"
@@ -19,20 +18,30 @@ import (
 //	responses:
 //	 201: signUpResponse
 //	 400: badRequestError
+//	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) SignUp(ctx echo.Context) error {
+	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
+			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
+		})
+	}
 	var input model.CreateUser
 	if err := ctx.Bind(&input); err != nil {
-		logrus.Error(err, "handler: invalid content of body")
+		logrus.Error("handler: invalid content of body - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "invalid body content", Error: err.Error(),
 		})
 	}
 
-	tokens, err := h.Services.SignUp(ctx.Request().Context(), &service.SignUpInput{
-		Email: input.Email, Password: input.Password,
-		UserName: input.UserName,
-	})
+	if err := h.Validator.Validate(&input); err != nil {
+		logrus.Error("handler: validation failed - ", err)
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "not enough fields in json body or wrong values of fields", Error: err.Error(),
+		})
+	}
+
+	tokens, err := h.Services.SignUp(ctx.Request().Context(), &input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "can't create user", Error: err.Error(),
@@ -51,20 +60,31 @@ func (h *Handler) SignUp(ctx echo.Context) error {
 //	responses:
 //	 200: signInResponse
 //	 400: badRequestError
+//	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) SignIn(ctx echo.Context) error {
+	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
+			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
+		})
+	}
+
 	var input model.AuthUser
 	if err := ctx.Bind(&input); err != nil {
-		logrus.Error(err, "handler: invalid content of body")
+		logrus.Error("handler: invalid content of body - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "invalid body content", Error: err.Error(),
 		})
 	}
 
-	tokens, err := h.Services.SignIn(ctx.Request().Context(), &service.SignInInput{
-		Email:    input.Email,
-		Password: input.Password,
-	})
+	if err := h.Validator.Validate(&input); err != nil {
+		logrus.Error("handler: validation failed - ", err)
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "not enough fields in json body or wrong values of fields", Error: err.Error(),
+		})
+	}
+
+	tokens, err := h.Services.SignIn(ctx.Request().Context(), &input)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
 			Message: "authorisation failed", Error: err.Error(),
@@ -82,20 +102,35 @@ func (h *Handler) SignIn(ctx echo.Context) error {
 //	responses:
 //	 200: refreshTokenResponse
 //	 400: badRequestError
+//	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) RefreshToken(ctx echo.Context) error {
 	var input model.RefreshToken
+
+	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
+			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
+		})
+	}
+
 	if err := ctx.Bind(&input); err != nil {
-		logrus.Error(err, "handler: invalid content of body")
+		logrus.Error("handler: invalid content of body - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "invalid body content", Error: err.Error(),
+		})
+	}
+
+	if err := h.Validator.Validate(&input); err != nil {
+		logrus.Error("handler: validation failed - ", err)
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
+			Message: "not enough fields", Error: err.Error(),
 		})
 	}
 
 	tokens, err := h.Services.RefreshToken(ctx.Request().Context(), input.RefreshToken)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{
-			Message: "authorisation failed", Error: err.Error(),
+			Message: "failed refresh token", Error: err.Error(),
 		})
 	}
 	return ctx.JSON(http.StatusOK, *tokens)

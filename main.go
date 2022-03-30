@@ -34,8 +34,6 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
 	"github.com/malkev1ch/first-task/internal/config"
 	"github.com/malkev1ch/first-task/internal/handler"
 	"github.com/malkev1ch/first-task/internal/repository"
@@ -66,37 +64,9 @@ func main() {
 
 	cache := rediscache.NewStreamCache(&cfg, redisClient)
 	services := service.NewService(repo, cache)
-	handlers := handler.NewHandler(services, &cfg)
-	router := echo.New()
-	router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowHeaders: []string{"*"},
-		AllowMethods: []string{"*"},
-	}))
-
-	auth := router.Group("/auth")
-	{
-		auth.POST("/sign-up", handlers.SignUp)
-		auth.POST("/sign-in", handlers.SignIn)
-		auth.POST("/refresh", handlers.RefreshToken)
-	}
-
-	cat := router.Group("/cats")
-
-	configJWTMiddleware := middleware.JWTConfig{
-		Claims:     &service.JwtCustomClaims{},
-		SigningKey: []byte(cfg.JWTKey),
-	}
-
-	cat.Use(middleware.JWTWithConfig(configJWTMiddleware))
-	{
-		cat.GET("/:uuid", handlers.GetCat)
-		cat.POST("/", handlers.CreateCat)
-		cat.PUT("/:uuid", handlers.UpdateCat)
-		cat.DELETE("/:uuid", handlers.DeleteCat)
-		cat.POST("/:uuid/image", handlers.UploadCatImage)
-		cat.GET("/:uuid/image", handlers.GetCatImage)
-	}
+	validator := handler.NewValidator()
+	handlers := handler.NewHandler(services, &cfg, validator)
+	router := handler.InitRouter(handlers, &cfg)
 
 	router.Logger.Fatal(router.Start(cfg.HTTPServer))
 

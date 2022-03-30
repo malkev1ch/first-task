@@ -32,15 +32,15 @@ type CreateCat struct {
 	// The Name of a cat
 	// example: Some name
 	// required: true
-	Name string `json:"name" bson:"name"`
+	Name string `json:"name" bson:"name" validate:"required"`
 	// The birthdate of a cat
 	// example: 2018-09-22T12:42:31Z
 	// required: true
-	DateBirth time.Time `json:"dateBirth" bson:"dateBirth"`
+	DateBirth time.Time `json:"dateBirth" bson:"dateBirth" validate:"required"`
 	// The status of vaccination of a cat
 	// example: true
 	// required: true
-	Vaccinated bool `json:"vaccinated" bson:"vaccinated"`
+	Vaccinated bool `json:"vaccinated" bson:"vaccinated" validate:"required"`
 }
 
 // UpdateCat is the struct for update a cat
@@ -49,13 +49,13 @@ type UpdateCat struct {
 	// The Name of a cat
 	// example: Some name
 	// required: true
-	Name *string `json:"name" bson:"name"`
+	Name *string `json:"name" bson:"name" validate:""`
 	// The birthdate of a cat
 	// example: 2018-09-22T12:42:31Z
 	// required: true
-	DateBirth *time.Time `json:"dateBirth" bson:"dateBirth"`
+	DateBirth *time.Time `json:"dateBirth" bson:"dateBirth" validate:""`
 	// The status of vaccination of a cat
 	// example: true
 	// required: true
-	Vaccinated *bool `json:"vaccinated" bson:"vaccinated"`
+	Vaccinated *bool `json:"vaccinated" bson:"vaccinated" validate:""`
 }

@@ -16,35 +16,9 @@ import (
 )
 
 const (
-	accessTokenExTime  = 120
+	accessTokenExTime  = 720
 	refreshTokenExTime = 720
 )
-
-type SignUpInput struct {
-	// The Name of a user
-	// example: Some name
-	// required: true
-	UserName string `json:"userName"`
-	// The email of a user
-	// example: qwerty@gmail.com
-	// required: true
-	Email string `json:"email"`
-	// The password of a user
-	// example: ZAQ!2wsx
-	// required: true
-	Password string `json:"password"`
-}
-
-type SignInInput struct {
-	// The email of a user
-	// example: qwerty@gmail.com
-	// required: true
-	Email string `json:"email"`
-	// The password of a user
-	// example: ZAQ!2wsx
-	// required: true
-	Password string `json:"password"`
-}
 
 // JwtCustomClaims are custom claims extending default ones.
 type JwtCustomClaims struct {
@@ -53,8 +27,16 @@ type JwtCustomClaims struct {
 	jwt.StandardClaims
 }
 
+type AuthService struct {
+	repo *repository.Repository
+}
+
+func NewAuthService(repo *repository.Repository) *AuthService {
+	return &AuthService{repo: repo}
+}
+
 // SignUp method hash user password and after that save user in repository.
-func (s Service) SignUp(ctx context.Context, input *SignUpInput) (*model.Tokens, error) {
+func (s AuthService) SignUp(ctx context.Context, input *model.CreateUser) (*model.Tokens, error) {
 	hPassword, err := s.hashPassword(input.Password)
 	if err != nil {
 		logrus.Error(err, "service: hash password failed")
@@ -80,7 +62,7 @@ func (s Service) SignUp(ctx context.Context, input *SignUpInput) (*model.Tokens,
 }
 
 // SignIn Generates tokens for created user.
-func (s Service) SignIn(ctx context.Context, input *SignInInput) (*model.Tokens, error) {
+func (s AuthService) SignIn(ctx context.Context, input *model.AuthUser) (*model.Tokens, error) {
 	id, hash, err := s.repo.Auth.GetUserHashedPassword(ctx, input.Email)
 	if err != nil {
 		return nil, err
@@ -104,7 +86,7 @@ func (s Service) SignIn(ctx context.Context, input *SignInInput) (*model.Tokens,
 }
 
 // RefreshToken method checks refresh token for validity and if it's ok return new token pair.
-func (s Service) RefreshToken(ctx context.Context, refreshTokenString string) (*model.Tokens, error) {
+func (s AuthService) RefreshToken(ctx context.Context, refreshTokenString string) (*model.Tokens, error) {
 	refreshToken, err := jwt.Parse(refreshTokenString, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_KEY")), nil
 	})
@@ -147,19 +129,19 @@ func (s Service) RefreshToken(ctx context.Context, refreshTokenString string) (*
 
 // hashPassword from string
 // bcrypt.DefaultCost = 10.
-func (s Service) hashPassword(password string) (string, error) {
+func (s AuthService) hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
 }
 
 // checkPasswordHash compare encrypt.
-func (s Service) checkPasswordHash(password string, hash string) bool {
+func (s AuthService) checkPasswordHash(password string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
 // generateToken generates new token pair and with putting email inside payload.
-func (s Service) generateToken(email string, id string) (*model.Tokens, error) {
+func (s AuthService) generateToken(email string, id string) (*model.Tokens, error) {
 	expirationTimeAT := time.Now().Add(accessTokenExTime * time.Hour)
 	expirationTimeRT := time.Now().Add(refreshTokenExTime * time.Hour)
 

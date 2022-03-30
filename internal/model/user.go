@@ -6,15 +6,15 @@ type CreateUser struct {
 	// The Name of a user
 	// example: Some name
 	// required: true
-	UserName string `json:"userName"`
+	UserName string `json:"userName" validate:"required"`
 	// The email of a user
 	// example: qwerty@gmail.com
 	// required: true
-	Email string `json:"email"`
+	Email string `json:"email" validate:"required,email"`
 	// The password of a user
 	// example: ZAQ!2wsx
 	// required: true
-	Password string `json:"password"`
+	Password string `json:"password" validate:"required,gt=8"`
 }
 
 // AuthUser struct represents mandatory user information for authorisation
@@ -23,11 +23,11 @@ type AuthUser struct {
 	// The email of a user
 	// example: qwerty@gmail.com
 	// required: true
-	Email string `json:"email"`
+	Email string `json:"email" validate:"required,email"`
 	// The password of a user
 	// example: ZAQ!2wsx
 	// required: true
-	Password string `json:"password"`
+	Password string `json:"password" validate:"required,gt=8"`
 }
 
 // Tokens struct represents a couple of token
@@ -40,5 +40,5 @@ type Tokens struct {
 // RefreshToken struct represents a  refresh token
 // swagger:model
 type RefreshToken struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
