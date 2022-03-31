@@ -24,6 +24,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -68,7 +69,15 @@ func main() {
 	handlers := handler.NewHandler(services, &cfg, validator)
 	router := handler.InitRouter(handlers, &cfg)
 
-	router.Logger.Fatal(router.Start(cfg.HTTPServer))
+	// router.Logger.Fatal(router.Start(cfg.HTTPServer))
+
+	router.Logger.Fatal(router.StartServer(&http.Server{
+		Addr:           ":8080",
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}))
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)

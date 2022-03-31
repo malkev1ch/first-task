@@ -21,11 +21,13 @@ import (
 //	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) SignUp(ctx echo.Context) error {
-	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+	contentType := ctx.Request().Header.Get("Content-Type")
+	if _, ex := AllowedContentType[contentType]; !ex {
 		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
 			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
 		})
 	}
+
 	var input model.CreateUser
 	if err := ctx.Bind(&input); err != nil {
 		logrus.Error("handler: invalid content of body - ", err)
@@ -63,7 +65,8 @@ func (h *Handler) SignUp(ctx echo.Context) error {
 //	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) SignIn(ctx echo.Context) error {
-	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+	contentType := ctx.Request().Header.Get("Content-Type")
+	if _, ex := AllowedContentType[contentType]; !ex {
 		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
 			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
 		})
@@ -105,14 +108,14 @@ func (h *Handler) SignIn(ctx echo.Context) error {
 //	 415: unsupportedMediaTypeError
 //	 500: internalServerError
 func (h *Handler) RefreshToken(ctx echo.Context) error {
-	var input model.RefreshToken
-
-	if contentType := ctx.Request().Header.Get("Content-Type"); contentType != "application/json" {
+	contentType := ctx.Request().Header.Get("Content-Type")
+	if _, ex := AllowedContentType[contentType]; !ex {
 		return ctx.JSON(http.StatusUnsupportedMediaType, ErrorResponse{
 			Message: "invalid media type", Error: fmt.Sprintf("got - %s", contentType),
 		})
 	}
 
+	var input model.RefreshToken
 	if err := ctx.Bind(&input); err != nil {
 		logrus.Error("handler: invalid content of body - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{

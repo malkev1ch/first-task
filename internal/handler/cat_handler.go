@@ -13,12 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var imageTypes = map[string]interface{}{
-	"image/jpeg": nil,
-	"image/png":  nil,
-	"image/webp": nil,
-}
-
 //	swagger:route POST /cats cats CreateCat
 //
 //	Create cat
@@ -43,7 +37,7 @@ func (h *Handler) CreateCat(ctx echo.Context) error {
 		})
 	}
 
-	if err := h.Validator.Validate(input); err != nil {
+	if err := h.Validator.Validate(&input); err != nil {
 		logrus.Error("handler: validation failed - ", err)
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{
 			Message: "not enough fields in json body", Error: err.Error(),

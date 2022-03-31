@@ -40,7 +40,7 @@ type CreateCat struct {
 	// The status of vaccination of a cat
 	// example: true
 	// required: true
-	Vaccinated bool `json:"vaccinated" bson:"vaccinated" validate:"required"`
+	Vaccinated bool `json:"vaccinated" bson:"vaccinated"`
 }
 
 // UpdateCat is the struct for update a cat

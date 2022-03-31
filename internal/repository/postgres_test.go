@@ -14,7 +14,6 @@ import (
 	"github.com/malkev1ch/first-task/internal/model"
 	"github.com/stretchr/testify/assert"
 
-	_ "github.com/lib/pq"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	log "github.com/sirupsen/logrus"

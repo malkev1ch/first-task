@@ -17,7 +17,10 @@ image:
 	docker build -t first-task-local-image:v1 .
 
 container:
-	docker run --name first-task-local -p 8080:8080 first-task-image:v1
+	docker run --name first-task-local -p 8080:8080 first-task-local-image:v1
 
 postgres:
 	docker run --name=first-task-local-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=qwerty -e POSTGRES_DB=postgres -p 5433:5432 -d postgres:14
+
+redis:
+	docker run -it --rm --name=my-redis -p 6380:6379 -d redis

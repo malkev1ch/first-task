@@ -16,6 +16,16 @@ type OKResponse struct {
 	Message string `json:"message"`
 }
 
+var AllowedContentType = map[string]interface{}{
+	"application/json": nil,
+}
+
+var imageTypes = map[string]interface{}{
+	"image/jpeg": nil,
+	"image/png":  nil,
+	"image/webp": nil,
+}
+
 // Handler type replies for handling echo server requests.
 type Handler struct {
 	Services  *service.Service
@@ -49,12 +59,14 @@ func InitRouter(handlers *Handler, cfg *config.Config) *echo.Echo {
 
 	cat := router.Group("/cats")
 
-	configJWTMiddleware := middleware.JWTConfig{
-		Claims:     &service.JwtCustomClaims{},
-		SigningKey: []byte(cfg.JWTKey),
+	if cfg.AuthMode {
+		configJWTMiddleware := middleware.JWTConfig{
+			Claims:     &service.JwtCustomClaims{},
+			SigningKey: []byte(cfg.JWTKey),
+		}
+		cat.Use(middleware.JWTWithConfig(configJWTMiddleware))
 	}
 
-	cat.Use(middleware.JWTWithConfig(configJWTMiddleware))
 	{
 		cat.GET("/:uuid", handlers.GetCat)
 		cat.POST("/", handlers.CreateCat)
